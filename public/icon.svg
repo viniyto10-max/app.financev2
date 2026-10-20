@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B7A43"/>
+      <stop offset="50%" stop-color="#0E9351"/>
+      <stop offset="100%" stop-color="#12B76A"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047"/>
+      <stop offset="100%" stop-color="#EAB308"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded rect -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+
+  <!-- Content with shadow -->
+  <g filter="url(#shadow)" transform="translate(0, 4)">
+    <!-- Wallet / Card Backing -->
+    <rect x="106" y="156" width="300" height="200" rx="32" fill="#FFFFFF" fill-opacity="0.15" stroke="#FFFFFF" stroke-width="8"/>
+    
+    <!-- Main Wallet Body -->
+    <rect x="96" y="176" width="320" height="200" rx="28" fill="#FFFFFF"/>
+    
+    <!-- Decorative top flap detail -->
+    <path d="M96 226 C96 200 120 186 146 186 L366 186 C392 186 416 200 416 226" fill="none" stroke="#E2E8F0" stroke-width="6"/>
+
+    <!-- Wallet Clasp -->
+    <path d="M310 246 L396 246 C412 246 424 258 424 276 C424 294 412 306 396 306 L310 306 Z" fill="#0B7A43"/>
+    <circle cx="384" cy="276" r="14" fill="url(#goldGrad)"/>
+
+    <!-- Trend Arrow / Money Symbol Upward on the Left -->
+    <g transform="translate(140, 226)">
+      <!-- Upward bar 1 -->
+      <rect x="0" y="56" width="22" height="44" rx="6" fill="#10B981"/>
+      <!-- Upward bar 2 -->
+      <rect x="32" y="32" width="22" height="68" rx="6" fill="#0B7A43"/>
+      <!-- Upward bar 3 -->
+      <rect x="64" y="8" width="22" height="92" rx="6" fill="#055B31"/>
+      <!-- Growth Trend Arrow -->
+      <path d="M6 46 L38 22 L76 2 L96 2 L96 22 L82 8 L40 32 Z" fill="#EAB308"/>
+      <!-- R$ Symbol -->
+      <text x="100" y="76" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="34" fill="#0B7A43">R$</text>
+    </g>
+  </g>
+</svg>

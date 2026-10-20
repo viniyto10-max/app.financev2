@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { enviarParaWebhook } from '../../services/webhookService';
+import { PWAInstallButton } from '../common/PWAInstallButton';
 
 export default function ModalIntegracoes({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [url, setUrl] = useState('');
@@ -66,11 +67,16 @@ export default function ModalIntegracoes({ isOpen, onClose }: { isOpen: boolean;
         </div>
 
         <button 
-          className="w-full bg-[var(--primary)] text-white h-12 rounded-xl font-bold flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity" 
+          className="w-full bg-[var(--primary)] text-white h-12 rounded-xl font-bold flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity mb-4" 
           onClick={handleSave}
         >
           Salvar
         </button>
+
+        <div className="border-t border-[var(--border)] pt-4">
+          <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">Instalação no Celular / PC</label>
+          <PWAInstallButton />
+        </div>
       </div>
     </div>
   );

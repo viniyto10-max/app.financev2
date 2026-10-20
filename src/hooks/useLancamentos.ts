@@ -65,8 +65,30 @@ export function useLancamentos() {
     setLoading(true);
     setErro(null);
     try {
-      const response = await fetch(SHEET_CSV_URL);
-      const csvText = await response.text();
+      let csvText = '';
+      try {
+        const proxyRes = await fetch('/api/sheet-csv');
+        if (proxyRes.ok) {
+          csvText = await proxyRes.text();
+        }
+      } catch {
+        // proxy attempt failed, fallback to direct url
+      }
+
+      if (!csvText) {
+        try {
+          const directRes = await fetch(SHEET_CSV_URL);
+          if (directRes.ok) {
+            csvText = await directRes.text();
+          }
+        } catch {
+          // direct fetch failed
+        }
+      }
+
+      if (!csvText) {
+        throw new Error('Não foi possível carregar os dados da planilha.');
+      }
       
       Papa.parse(csvText, {
         header: true,
@@ -81,11 +103,10 @@ export function useLancamentos() {
           localStorage.setItem('lancamentos_cache', JSON.stringify(parsedData));
         },
         error: (err: Error) => {
-          throw new Error(err.message);
+          setErro(err.message);
         }
       });
-    } catch (err) {
-      console.error(err);
+    } catch {
       setErro('Erro ao carregar dados. Usando dados locais.');
     } finally {
       setLoading(false);

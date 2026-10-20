@@ -6,6 +6,7 @@ import { format, subMonths, addMonths, isSameMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion } from 'framer-motion';
 import ThemeToggle from '../components/common/ThemeToggle';
+import { PWAInstallButton } from '../components/common/PWAInstallButton';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { CARTOES } from '../lib/constants';
@@ -110,6 +111,7 @@ export default function Home() {
         <div className="bg-gradient-to-b from-[#0B8F4D] to-[#12B76A] dark:from-[#086a3b] dark:to-[#0e8a50] text-white p-6 pb-16 rounded-b-[28px]">
             <div className="flex justify-between items-center mb-6 relative">
               <div className="flex items-center gap-2">
+                <PWAInstallButton compact />
                 <Bell size={24} />
                 <ThemeToggle />
               </div>
