@@ -9,7 +9,7 @@ import ThemeToggle from '../components/common/ThemeToggle';
 import { PWAInstallButton } from '../components/common/PWAInstallButton';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { CARTOES } from '../lib/constants';
+import { CARTOES, isCartao } from '../lib/constants';
 
 const getCategoryInfo = (categoria: string) => {
   const map: Record<string, { icon: any, color: string }> = {
@@ -79,8 +79,14 @@ export default function Home() {
 
   const cardSpends = CARTOES.map(cartao => {
     const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const c = norm(cartao);
+    const cBrand = c.replace('cartao', '').trim();
     const total = filteredData
-      .filter(t => t.movimento === 'Saída' && norm(t.banco) === norm(cartao))
+      .filter(t => {
+        if (t.movimento !== 'Saída') return false;
+        const b = norm(t.banco || '');
+        return b === c || (isCartao(t.banco || '') && (b.includes(cBrand) || c.includes(b)));
+      })
       .reduce((sum, t) => sum + t.valor, 0);
     return { name: cartao, value: total };
   }).sort((a, b) => b.value - a.value);
@@ -108,7 +114,7 @@ export default function Home() {
   return (
     <div className="flex flex-col bg-[var(--bg-app)] text-[var(--text-primary)] pb-32">
         {/* Header (retained as is for layout) */}
-        <div className="bg-gradient-to-b from-[#0B8F4D] to-[#12B76A] dark:from-[#086a3b] dark:to-[#0e8a50] text-white p-6 pb-16 rounded-b-[28px]">
+        <div className="bg-gradient-to-b from-[#0B8F4D] to-[#12B76A] dark:from-[#086a3b] dark:to-[#0e8a50] text-white p-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-16 rounded-b-[28px]">
             <div className="flex justify-between items-center mb-6 relative">
               <div className="flex items-center gap-2">
                 <PWAInstallButton compact />

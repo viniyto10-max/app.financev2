@@ -9,7 +9,7 @@ export default function NovoLancamento() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] pb-32">
-      <header className="py-3 px-5 flex justify-between items-center" style={{ background: 'var(--header-gradient)' }}>
+      <header className="py-3 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] flex justify-between items-center" style={{ background: 'var(--header-gradient)' }}>
         <h1 className="text-lg font-bold text-white">Novo Lançamento</h1>
         <ThemeToggle />
       </header>

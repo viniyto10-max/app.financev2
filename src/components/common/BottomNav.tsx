@@ -8,24 +8,24 @@ export default function BottomNav() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="absolute bottom-0 left-0 right-0 z-40 bg-[var(--nav-bg)] border-t border-[var(--border)] p-4 flex justify-around items-center">
-      <button onClick={() => navigate('/')} className="p-2 cursor-pointer" aria-label="Dashboard">
+    <nav className="relative w-full z-40 bg-[var(--nav-bg)] border-t border-[var(--border)] px-4 py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-around items-center">
+      <button onClick={() => navigate('/')} className="p-2 cursor-pointer transition-opacity hover:opacity-80" aria-label="Dashboard">
         <LayoutDashboard size={24} color={isActive('/') ? 'var(--nav-icon-active)' : 'var(--nav-icon)'} />
       </button>
-      <button onClick={() => navigate('/lancamentos')} className="p-2 cursor-pointer" aria-label="Lançamentos">
+      <button onClick={() => navigate('/lancamentos')} className="p-2 cursor-pointer transition-opacity hover:opacity-80" aria-label="Lançamentos">
         <ReceiptText size={24} color={isActive('/lancamentos') ? 'var(--nav-icon-active)' : 'var(--nav-icon)'} />
       </button>
       <div 
-        className="bg-[var(--primary)] p-4 rounded-full -mt-10 text-white shadow-lg cursor-pointer flex items-center justify-center transition-transform hover:scale-105 active:scale-95" 
+        className="bg-[var(--primary)] p-3.5 rounded-full -mt-8 text-white shadow-lg cursor-pointer flex items-center justify-center transition-transform hover:scale-105 active:scale-95 shrink-0" 
         onClick={() => navigate('/novo')}
         aria-label="Novo Lançamento"
       >
         <Plus size={24} />
       </div>
-      <button onClick={() => navigate('/categorias')} className="p-2 cursor-pointer" aria-label="Categorias">
+      <button onClick={() => navigate('/categorias')} className="p-2 cursor-pointer transition-opacity hover:opacity-80" aria-label="Categorias">
         <PieChart size={24} color={isActive('/categorias') ? 'var(--nav-icon-active)' : 'var(--nav-icon)'} />
       </button>
-      <button onClick={() => navigate('/analises')} className="p-2 cursor-pointer" aria-label="Análises">
+      <button onClick={() => navigate('/analises')} className="p-2 cursor-pointer transition-opacity hover:opacity-80" aria-label="Análises">
         <BarChart3 size={24} color={isActive('/analises') ? 'var(--nav-icon-active)' : 'var(--nav-icon)'} />
       </button>
     </nav>

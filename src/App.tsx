@@ -14,8 +14,8 @@ import BottomNav from './components/common/BottomNav';
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="flex h-[100dvh] w-full justify-center bg-[var(--bg-page)]">
-        <div className="relative flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-[var(--bg-app)] shadow-[var(--shadow)]">
+      <div className="flex h-[100dvh] w-full justify-center bg-[var(--bg-app)] sm:bg-[var(--bg-page)]">
+        <div className="relative flex h-[100dvh] w-full sm:max-w-[440px] flex-col overflow-hidden bg-[var(--bg-app)] sm:shadow-[var(--shadow)] sm:border-x sm:border-[var(--border)]">
           <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden app-content">
             <Routes>
               <Route path="/" element={<Home />} />
@@ -25,7 +25,7 @@ export default function App() {
               <Route path="/novo" element={<NovoLancamento />} />
             </Routes>
           </main>
-          <footer className="relative z-50 shrink-0">
+          <footer className="relative z-50 shrink-0 w-full">
             <BottomNav />
           </footer>
         </div>

@@ -138,7 +138,7 @@ export default function Lancamentos() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)]">
-      <header className="py-3 px-5 flex justify-between items-center sticky top-0 z-40" style={{ background: 'var(--header-gradient)' }}>
+      <header className="py-3 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] flex justify-between items-center sticky top-0 z-40" style={{ background: 'var(--header-gradient)' }}>
         <h1 className="text-lg font-bold text-white">Lançamentos</h1>
         <ThemeToggle />
       </header>
@@ -319,7 +319,7 @@ export default function Lancamentos() {
       {/* Bottom Sheet de Filtros Avançados */}
       {isFilterOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
-          <div className="bg-[var(--bg-card)] border-t border-[var(--border)] w-full max-w-[430px] rounded-t-[20px] p-6 max-h-[85dvh] overflow-y-auto space-y-5 animate-in slide-in-from-bottom duration-200">
+          <div className="bg-[var(--bg-card)] border-t border-[var(--border)] w-full sm:max-w-[440px] rounded-t-[20px] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] max-h-[85dvh] overflow-y-auto space-y-5 animate-in slide-in-from-bottom duration-200">
             <div className="flex justify-between items-center border-b border-[var(--border)] pb-3">
               <h3 className="font-bold text-base">Filtros Avançados</h3>
               <button onClick={() => setIsFilterOpen(false)} className="text-[var(--text-secondary)]"><X size={20}/></button>
@@ -424,7 +424,7 @@ export default function Lancamentos() {
       {/* Bottom Sheet de Detalhes */}
       {selectedTransaction && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
-          <div className="bg-[var(--bg-card)] border-t border-[var(--border)] w-full max-w-[430px] rounded-t-[20px] p-6 space-y-4 animate-in slide-in-from-bottom duration-200">
+          <div className="bg-[var(--bg-card)] border-t border-[var(--border)] w-full sm:max-w-[440px] rounded-t-[20px] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-4 animate-in slide-in-from-bottom duration-200">
             <div className="flex justify-between items-center border-b border-[var(--border)] pb-3">
               <h3 className="font-bold text-base">Detalhes do Lançamento</h3>
               <button onClick={() => setSelectedTransaction(null)} className="text-[var(--text-secondary)]"><X size={20}/></button>
