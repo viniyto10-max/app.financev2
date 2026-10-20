@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+:root, [data-theme="light"] {
+  color-scheme: light;
+  --bg-page: #E5E7EB;
+  --bg-app: #F1F5F9;
+  --bg-card: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --bg-input: #FFFFFF;
+  --border: #E2E8F0;
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --text-placeholder: #94A3B8;
+  --primary: #10B981;
+  --primary-soft: rgba(16,185,129,.12);
+  --danger: #EF4444;
+  --danger-soft: rgba(239,68,68,.12);
+  --nav-bg: #0F172A;
+  --nav-icon: #64748B;
+  --nav-icon-active: #10B981;
+  --shadow: 0 4px 16px rgba(15,23,42,.08);
+  --header-gradient: linear-gradient(160deg,#0B7A43,#10A15A);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-page: #1F1F1F;
+  --bg-app: #020617;
+  --bg-card: #0F172A;
+  --bg-elevated: #111C33;
+  --bg-input: #1E293B;
+  --border: #1E293B;
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-placeholder: #64748B;
+  --primary: #10B981;
+  --primary-soft: rgba(16,185,129,.18);
+  --danger: #F87171;
+  --danger-soft: rgba(248,113,113,.18);
+  --nav-bg: #0F172A;
+  --nav-icon: #64748B;
+  --nav-icon-active: #10B981;
+  --shadow: 0 4px 16px rgba(0,0,0,.5);
+  --header-gradient: linear-gradient(160deg,#0B6B3C,#0E8A4E);
+}
+
+html, body, #root {
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  margin: 0;
+  min-height: 100dvh;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  transition: background-color .2s, color .2s, border-color .2s;
+}
+
+[data-theme="dark"] input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}

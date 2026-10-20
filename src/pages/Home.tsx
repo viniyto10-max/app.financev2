@@ -1,0 +1,286 @@
+import { useState } from 'react';
+import { Bell, Calendar, Eye, EyeOff, ChevronRight, ArrowUpCircle, ArrowDownCircle, ShoppingBag, Wifi, Coffee, Heart, BookOpen, Shirt, Tv, Zap, Droplet, Fuel, DollarSign, Briefcase } from 'lucide-react';
+import { formatCurrency } from '../lib/utils';
+import { useLancamentos } from '../hooks/useLancamentos';
+import { format, subMonths, addMonths, isSameMonth } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { motion } from 'framer-motion';
+import ThemeToggle from '../components/common/ThemeToggle';
+import { useNavigate } from 'react-router-dom';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { CARTOES } from '../lib/constants';
+
+const getCategoryInfo = (categoria: string) => {
+  const map: Record<string, { icon: any, color: string }> = {
+    'Alimentação': { icon: Coffee, color: 'bg-orange-500' },
+    'Mercado Livre': { icon: ShoppingBag, color: 'bg-yellow-500' },
+    'Internet': { icon: Wifi, color: 'bg-blue-500' },
+    'Energia': { icon: Zap, color: 'bg-yellow-400' },
+    'Saúde': { icon: Heart, color: 'bg-red-500' },
+    'Estudos': { icon: BookOpen, color: 'bg-purple-500' },
+    'Vestuário': { icon: Shirt, color: 'bg-pink-500' },
+    'Assinaturas digitais': { icon: Tv, color: 'bg-indigo-500' },
+    'Combustivel': { icon: Fuel, color: 'bg-gray-600' },
+    'Àgua': { icon: Droplet, color: 'bg-blue-400' },
+    'Salário': { icon: DollarSign, color: 'bg-green-600' },
+  };
+  return map[categoria] || { icon: Briefcase, color: 'bg-gray-400' };
+};
+
+export default function Home() {
+  const { lancamentos, loading, erro, lastUpdated } = useLancamentos();
+  const [showValues, setShowValues] = useState(true);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const navigate = useNavigate();
+
+  const handleDragEnd = (_: any, info: any) => {
+    if (info.offset.x > 50) setCurrentDate(subMonths(currentDate, 1));
+    else if (info.offset.x < -50) setCurrentDate(addMonths(currentDate, 1));
+  };
+
+  const getFilteredData = (date: Date) => lancamentos.filter(t => isSameMonth(t.data_hora, date));
+  const filteredData = getFilteredData(currentDate);
+  const prevMonthData = getFilteredData(subMonths(currentDate, 1));
+
+  const totalEntrada = filteredData.filter(t => t.movimento === 'Entrada').reduce((sum, t) => sum + t.valor, 0);
+  const totalSaida = filteredData.filter(t => t.movimento === 'Saída').reduce((sum, t) => sum + t.valor, 0);
+  const saldo = totalEntrada - totalSaida;
+  
+  const prevEntrada = prevMonthData.filter(t => t.movimento === 'Entrada').reduce((sum, t) => sum + t.valor, 0);
+  const prevSaida = prevMonthData.filter(t => t.movimento === 'Saída').reduce((sum, t) => sum + t.valor, 0);
+
+  const getComparison = (current: number, prev: number, isEntrada: boolean) => {
+      if (prev === 0) return "—";
+      const diff = ((current - prev) / prev) * 100;
+      const isIncrease = diff > 0;
+      const color = (isEntrada ? isIncrease : !isIncrease) ? "text-[var(--primary)]" : "text-[var(--danger)]";
+      return <span className={`text-[10px] ${color}`}>▲ {Math.abs(diff).toFixed(0)}% vs mês anterior</span>;
+  }
+
+  const latest = [...filteredData].sort((a,b) => new Date(b.data_hora).getTime() - new Date(a.data_hora).getTime()).slice(0, 6);
+
+  const saídas = filteredData.filter(t => t.movimento === 'Saída');
+  const catMap = saídas.reduce((acc, t) => {
+      acc[t.categoria] = (acc[t.categoria] || 0) + t.valor;
+      return acc;
+  }, {} as Record<string, number>);
+  
+  const sortedCats = Object.entries(catMap).sort((a,b) => b[1] - a[1]);
+  const top5 = sortedCats.slice(0, 5);
+  const outros = sortedCats.slice(5).reduce((sum, [,val]) => sum + val, 0);
+  
+  const chartData = [
+      ...top5.map(([name, value]) => ({ name, value })),
+      ...(outros > 0 ? [{ name: 'Outros', value: outros }] : [])
+  ];
+
+  const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#64748B'];
+
+  const cardSpends = CARTOES.map(cartao => {
+    const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const total = filteredData
+      .filter(t => t.movimento === 'Saída' && norm(t.banco) === norm(cartao))
+      .reduce((sum, t) => sum + t.valor, 0);
+    return { name: cartao, value: total };
+  }).sort((a, b) => b.value - a.value);
+
+  const totalCartoes = cardSpends.reduce((sum, c) => sum + c.value, 0);
+  const maxCardSpend = Math.max(...cardSpends.map(c => c.value), 1);
+  const hasCardSpend = totalCartoes > 0;
+
+  const defaultResponsaveis = ['Ahyslla Vascaina', 'Marcos Andrade'];
+  const allResponsaveis = Array.from(new Set([...defaultResponsaveis, ...lancamentos.map(t => t.responsavel).filter(Boolean)]));
+  
+  const responsavelStats = allResponsaveis.map(resp => {
+    const respData = filteredData.filter(t => t.responsavel === resp);
+    const recebeu = respData.filter(t => t.movimento === 'Entrada').reduce((sum, t) => sum + t.valor, 0);
+    const gastou = respData.filter(t => t.movimento === 'Saída').reduce((sum, t) => sum + t.valor, 0);
+    const saldoResp = recebeu - gastou;
+    return { name: resp, recebeu, gastou, saldo: saldoResp };
+  });
+
+  const maxRespVal = Math.max(...responsavelStats.flatMap(r => [r.recebeu, r.gastou]), 1);
+
+  if (loading) return <div className="p-4 space-y-4 animate-pulse"><div className="h-40 bg-[var(--bg-card)] rounded-2xl"/></div>;
+  if (erro) return <div className="p-4 text-center text-[var(--danger)]">{erro}</div>;
+
+  return (
+    <div className="flex flex-col bg-[var(--bg-app)] text-[var(--text-primary)] pb-32">
+        {/* Header (retained as is for layout) */}
+        <div className="bg-gradient-to-b from-[#0B8F4D] to-[#12B76A] dark:from-[#086a3b] dark:to-[#0e8a50] text-white p-6 pb-16 rounded-b-[28px]">
+            <div className="flex justify-between items-center mb-6 relative">
+              <div className="flex items-center gap-2">
+                <Bell size={24} />
+                <ThemeToggle />
+              </div>
+              
+              <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center gap-6 font-bold w-48 overflow-hidden">
+                 <motion.div 
+                    className="flex gap-6 items-center cursor-grab"
+                    drag="x" dragConstraints={{ left: 0, right: 0 }}
+                    onDragEnd={handleDragEnd}
+                 >
+                    <span className="opacity-70 text-sm whitespace-nowrap cursor-pointer" onClick={() => setCurrentDate(subMonths(currentDate, 1))}>{format(subMonths(currentDate, 1), 'MMM', { locale: ptBR })}</span>
+                    <span className="border-b-2 border-white text-base whitespace-nowrap">{format(currentDate, 'MMM', { locale: ptBR })}</span>
+                    <span className="opacity-70 text-sm whitespace-nowrap cursor-pointer" onClick={() => setCurrentDate(addMonths(currentDate, 1))}>{format(addMonths(currentDate, 1), 'MMM', { locale: ptBR })}</span>
+                 </motion.div>
+              </div>
+
+              <Calendar size={24} onClick={() => setCurrentDate(new Date())} className="cursor-pointer" />
+            </div>
+            <div className="text-sm opacity-90">Saldo total</div>
+            <div className="flex items-center gap-2 mb-2">
+                <span className="text-4xl font-bold">{showValues ? formatCurrency(saldo) : '••••••••'}</span>
+                <button onClick={() => setShowValues(!showValues)} className="cursor-pointer">{showValues ? <Eye size={20}/> : <EyeOff size={20}/>}</button>
+            </div>
+            <div className="text-xs opacity-80">Atualizado há {Math.floor((new Date().getTime() - lastUpdated.getTime()) / 60000)} minutos</div>
+        </div>
+
+      <div className="px-4 -mt-10 grid grid-cols-2 gap-4">
+        <div className="bg-[var(--bg-card)] p-4 rounded-2xl shadow-[var(--shadow)] border border-[var(--border)]">
+            <div className="text-sm text-[var(--text-secondary)] mb-1">Entrada</div>
+            <div className="text-xl font-bold text-[var(--primary)]">+{showValues ? formatCurrency(totalEntrada) : '••••'}</div>
+            {getComparison(totalEntrada, prevEntrada, true)}
+        </div>
+        <div className="bg-[var(--bg-card)] p-4 rounded-2xl shadow-[var(--shadow)] border border-[var(--border)]">
+            <div className="text-sm text-[var(--text-secondary)] mb-1">Saída</div>
+            <div className="text-xl font-bold text-[var(--danger)]">-{showValues ? formatCurrency(totalSaida) : '••••'}</div>
+            {getComparison(totalSaida, prevSaida, false)}
+        </div>
+      </div>
+
+      <div className="p-4">
+        <h2 className="font-bold text-lg mb-4">Gastos por categoria</h2>
+        {totalSaida === 0 ? (
+          <p className="text-center text-[var(--text-secondary)] py-8">Sem saídas neste mês</p>
+        ) : (
+          <div className="bg-[var(--bg-card)] p-4 rounded-2xl shadow-[var(--shadow)] border border-[var(--border)]">
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={chartData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                  {chartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                </Pie>
+                <Tooltip formatter={(value: any) => formatCurrency(Number(value) || 0) as any} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="space-y-2 mt-4">
+              {chartData.map((entry, i) => (
+                <div key={entry.name} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                    <span className="text-[var(--text-secondary)]">{entry.name}</span>
+                  </div>
+                  <span className="font-medium">
+                    {showValues ? formatCurrency(entry.value) : '••••'} ({((entry.value / totalSaida) * 100).toFixed(1)}%)
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Seção Gasto por cartão de crédito */}
+      <div className="p-4">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="font-bold text-lg">Gasto por cartão de crédito</h2>
+          <span className="font-bold text-[var(--danger)]">{showValues ? formatCurrency(totalCartoes) : '••••'}</span>
+        </div>
+        <div className="flex gap-3 overflow-x-auto scrollbar-none pb-2 scroll-snap-x">
+          {cardSpends.map(c => (
+            <div 
+              key={c.name}
+              onClick={() => navigate('/lancamentos')}
+              className="w-[150px] shrink-0 bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-3 flex flex-col justify-between shadow-[var(--shadow)] cursor-pointer hover:opacity-90 transition-opacity"
+            >
+              <div>
+                <div className="text-xs font-semibold truncate text-[var(--text-primary)]">{c.name}</div>
+                <div className="text-sm font-bold text-[var(--danger)] mt-2">
+                  {showValues ? formatCurrency(c.value) : '••••'}
+                </div>
+              </div>
+              <div className="w-full bg-[var(--border)] h-1.5 rounded-full mt-3 overflow-hidden">
+                <div className="bg-[var(--danger)] h-full rounded-full" style={{ width: `${(c.value / maxCardSpend) * 100}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+        {!hasCardSpend && <p className="text-xs text-[var(--text-secondary)] mt-1">Sem gastos no cartão neste mês</p>}
+      </div>
+
+      {/* Seção Por responsável */}
+      <div className="p-4">
+        <h2 className="font-bold text-lg mb-4">Por responsável</h2>
+        <div className="space-y-3">
+          {responsavelStats.map(r => {
+            const initial = r.name ? r.name.charAt(0).toUpperCase() : '?';
+            return (
+              <div key={r.name} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 shadow-[var(--shadow)] space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] flex items-center justify-center font-bold text-xs shrink-0">
+                    {initial}
+                  </div>
+                  <div className="font-semibold text-sm truncate">{r.name}</div>
+                </div>
+
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between text-[var(--text-secondary)]">
+                    <span>Recebeu</span>
+                    <span className="font-bold text-[var(--primary)]">{showValues ? formatCurrency(r.recebeu) : '••••'}</span>
+                  </div>
+                  <div className="flex justify-between text-[var(--text-secondary)]">
+                    <span>Gastou</span>
+                    <span className="font-bold text-[var(--danger)]">{showValues ? formatCurrency(r.gastou) : '••••'}</span>
+                  </div>
+                  <div className="flex justify-between text-[var(--text-secondary)] pt-1 border-t border-[var(--border)]">
+                    <span>Saldo</span>
+                    <span className={`font-bold ${r.saldo >= 0 ? 'text-[var(--primary)]' : 'text-[var(--danger)]'}`}>
+                      {showValues ? formatCurrency(r.saldo) : '••••'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1 pt-1">
+                  <div className="w-full bg-[var(--border)] h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-[var(--primary)] h-full rounded-full" style={{ width: `${(r.recebeu / maxRespVal) * 100}%` }} />
+                  </div>
+                  <div className="w-full bg-[var(--border)] h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-[var(--danger)] h-full rounded-full" style={{ width: `${(r.gastou / maxRespVal) * 100}%` }} />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="p-4">
+        <div className="flex justify-between items-center mb-4">
+            <h2 className="font-bold text-lg">Últimos lançamentos</h2>
+            <button onClick={() => navigate('/lancamentos')} className="text-sm text-[var(--primary)] flex items-center">Ver todos <ChevronRight size={16}/></button>
+        </div>
+        
+        {latest.length === 0 ? <p className="text-center text-[var(--text-secondary)]">Nenhum lançamento neste mês</p> : (
+            <div className="space-y-3">
+                {latest.map(t => {
+                    const { icon: Icon, color } = getCategoryInfo(t.categoria);
+                    return (
+                        <div key={t.id} className="flex items-center gap-3 bg-[var(--bg-card)] p-3 rounded-xl border border-[var(--border)]">
+                            <div className={`${color} p-2 rounded-full text-white`}><Icon size={16}/></div>
+                            <div className="flex-1 min-w-0">
+                                <div className="font-medium truncate">{t.descricao || t.categoria}</div>
+                                <div className="text-xs text-[var(--text-secondary)]">{t.banco} · {format(t.data_hora, 'dd/MM')}</div>
+                            </div>
+                            <div className={`font-bold ${t.movimento === 'Entrada' ? 'text-[var(--primary)]' : 'text-[var(--danger)]'}`}>
+                                {t.movimento === 'Entrada' ? '+' : '-'}{showValues ? formatCurrency(t.valor) : '••••'}
+                            </div>
+                            {!t.confirmado && <span className="text-[10px] bg-orange-100 text-orange-600 px-1.5 rounded">Pendente</span>}
+                        </div>
+                    )
+                })}
+            </div>
+        )}
+      </div>
+    </div>
+  );
+}

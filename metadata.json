@@ -1,0 +1,6 @@
+{
+  "name": "Minhas Economias",
+  "description": "App de gestão de finanças pessoais integrado ao Google Sheets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
