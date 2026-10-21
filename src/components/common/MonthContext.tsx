@@ -21,7 +21,11 @@ export function MonthProvider({ children }: { children: React.ReactNode }) {
 export function useMonth() {
   const context = useContext(MonthContext);
   if (!context) {
-    throw new Error('useMonth must be used within a MonthProvider');
+    console.warn('useMonth must be used within a MonthProvider. Falling back to default.');
+    return {
+      currentDate: new Date(),
+      setCurrentDate: () => {}
+    };
   }
   return context;
 }

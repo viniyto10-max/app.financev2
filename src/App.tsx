@@ -13,6 +13,8 @@ import BottomNav from './components/common/BottomNav';
 import { ScreenHeader } from './components/common/ScreenHeader';
 import { ReceiptText, Plus, PieChart, BarChart3 } from 'lucide-react';
 
+import { MonthProvider } from './components/common/MonthContext';
+
 function AppLayout() {
   const location = useLocation();
   const path = location.pathname;
@@ -29,23 +31,25 @@ function AppLayout() {
   }
 
   return (
-    <div className="flex h-[100dvh] w-full justify-center bg-[var(--bg-app)] sm:bg-[var(--bg-page)]">
-      <div className="relative flex h-[100dvh] w-full sm:max-w-[440px] flex-col overflow-hidden bg-[var(--bg-app)] sm:shadow-[var(--shadow)] sm:border-x sm:border-[var(--border)]">
-        {headerConfig && <div className="shrink-0 z-40">{headerConfig}</div>}
-        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden app-content">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/lancamentos" element={<Lancamentos />} />
-            <Route path="/categorias" element={<Categorias />} />
-            <Route path="/analises" element={<Analises />} />
-            <Route path="/novo" element={<NovoLancamento />} />
-          </Routes>
-        </main>
-        <footer className="relative z-50 shrink-0 w-full">
-          <BottomNav />
-        </footer>
+    <MonthProvider>
+      <div className="flex h-[100dvh] w-full justify-center bg-[var(--bg-app)] sm:bg-[var(--bg-page)]">
+        <div className="relative flex h-[100dvh] w-full sm:max-w-[440px] flex-col overflow-hidden bg-[var(--bg-app)] sm:shadow-[var(--shadow)] sm:border-x sm:border-[var(--border)]">
+          {headerConfig && <div className="shrink-0 z-40">{headerConfig}</div>}
+          <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden app-content">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/lancamentos" element={<Lancamentos />} />
+              <Route path="/categorias" element={<Categorias />} />
+              <Route path="/analises" element={<Analises />} />
+              <Route path="/novo" element={<NovoLancamento />} />
+            </Routes>
+          </main>
+          <footer className="relative z-50 shrink-0 w-full">
+            <BottomNav />
+          </footer>
+        </div>
       </div>
-    </div>
+    </MonthProvider>
   );
 }
 
