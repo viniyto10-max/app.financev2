@@ -30,7 +30,11 @@ export function useMonth() {
   return context;
 }
 
-export function MonthChips() {
+interface MonthChipsProps {
+  variant?: 'header' | 'surface';
+}
+
+export function MonthChips({ variant }: MonthChipsProps) {
   const { currentDate, setCurrentDate } = useMonth();
   const [animatingDir, setAnimatingDir] = useState<'left' | 'right' | null>(null);
 
@@ -118,6 +122,17 @@ export function MonthChips() {
     }
   };
 
+  const isSurface = variant === 'surface';
+
+  // Cores dinâmicas para funcionar perfeitamente no cabeçalho verde e também fora dele no modo claro/escuro
+  const sideButtonClass = isSurface
+    ? 'bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-secondary)]'
+    : 'bg-white/10 dark:bg-white/10 text-white/80 hover:text-white';
+
+  const centerButtonClass = isSurface
+    ? 'bg-[var(--bg-elevated)] border-2 border-[var(--primary)] text-[var(--text-primary)] shadow-md'
+    : 'bg-white/25 text-white shadow-sm';
+
   return (
     <div
       className="w-full max-w-full overflow-hidden select-none"
@@ -147,10 +162,7 @@ export function MonthChips() {
         <button
           type="button"
           onClick={handlePrev}
-          className="flex-1 basis-1/3 min-w-0 h-10 px-1 rounded-full flex items-center justify-center text-xs font-medium text-white/70 transition-all cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis active:scale-95"
-          style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.10)',
-          }}
+          className={`flex-1 basis-1/3 min-w-0 h-10 px-1 rounded-full flex items-center justify-center text-xs font-semibold transition-all cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis active:scale-95 ${sideButtonClass}`}
           title={formatMonthLabel(prevMonth)}
         >
           {formatMonthLabel(prevMonth)}
@@ -159,9 +171,8 @@ export function MonthChips() {
         {/* Mês Selecionado (Centro) */}
         <button
           type="button"
-          className="flex-1 basis-1/3 min-w-0 h-10 px-1 rounded-full flex items-center justify-center text-xs font-bold text-white transition-all cursor-default whitespace-nowrap overflow-hidden text-ellipsis shadow-sm"
+          className={`flex-1 basis-1/3 min-w-0 h-10 px-1 rounded-full flex items-center justify-center text-xs font-bold transition-all cursor-default whitespace-nowrap overflow-hidden text-ellipsis ${centerButtonClass}`}
           style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.25)',
             transform: 'scale(1.05)',
           }}
           title={formatMonthLabel(currentDate)}
@@ -173,10 +184,7 @@ export function MonthChips() {
         <button
           type="button"
           onClick={handleNext}
-          className="flex-1 basis-1/3 min-w-0 h-10 px-1 rounded-full flex items-center justify-center text-xs font-medium text-white/70 transition-all cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis active:scale-95"
-          style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.10)',
-          }}
+          className={`flex-1 basis-1/3 min-w-0 h-10 px-1 rounded-full flex items-center justify-center text-xs font-semibold transition-all cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis active:scale-95 ${sideButtonClass}`}
           title={formatMonthLabel(nextMonth)}
         >
           {formatMonthLabel(nextMonth)}

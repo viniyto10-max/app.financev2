@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Bell, Calendar, Eye, EyeOff, ChevronRight, ArrowUpCircle, ArrowDownCircle, ShoppingBag, Wifi, Coffee, Heart, BookOpen, Shirt, Tv, Zap, Droplet, Fuel, DollarSign, Briefcase, BellRing, BellOff } from 'lucide-react';
 import { formatCurrency } from '../lib/utils';
 import { useLancamentos } from '../hooks/useLancamentos';
@@ -11,7 +11,7 @@ import { PWAInstallButton } from '../components/common/PWAInstallButton';
 import { useMonth, MonthChips } from '../components/common/MonthContext';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { CARTOES, isCartao, CARTAO_ESTILOS, CARTAO_ESTILO_PADRAO, FOTOS_RESPONSAVEIS } from '../lib/constants';
+import { CARTOES, isCartao, CARTAO_ESTILOS, CARTAO_ESTILO_PADRAO, FOTOS_RESPONSAVEIS, matchCartao, getCartaoVisual } from '../lib/constants';
 import ResponsavelAvatar from '../components/common/ResponsavelAvatar';
 
 const getCategoryInfo = (categoria: string) => {
@@ -81,19 +81,35 @@ export default function Home() {
 
   const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#64748B'];
 
-  const cardSpends = CARTOES.map(cartao => {
-    const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-    const c = norm(cartao);
-    const cBrand = c.replace('cartao', '').trim();
-    const total = filteredData
-      .filter(t => {
-        if (t.movimento !== 'Saída') return false;
-        const b = norm(t.banco || '');
-        return b === c || (isCartao(t.banco || '') && (b.includes(cBrand) || c.includes(b)));
-      })
-      .reduce((sum, t) => sum + t.valor, 0);
-    return { name: cartao, value: total };
-  }).sort((a, b) => b.value - a.value);
+  // Lista dinâmica de cartões a partir da base e dos lançamentos da planilha
+  const todosCartoes = useMemo(() => {
+    const list = [...CARTOES];
+    lancamentos.forEach(t => {
+      if (t.banco && isCartao(t.banco)) {
+        const matched = matchCartao(t.banco, list);
+        if (matched && !list.includes(matched)) {
+          list.push(matched);
+        } else if (!matched) {
+          const nomeFormatado = t.banco.trim();
+          if (!list.includes(nomeFormatado)) list.push(nomeFormatado);
+        }
+      }
+    });
+    return list;
+  }, [lancamentos]);
+
+  const cardSpends = useMemo(() => {
+    return todosCartoes.map(cartao => {
+      const total = filteredData
+        .filter(t => {
+          if (t.movimento !== 'Saída') return false;
+          const matched = matchCartao(t.banco || '', todosCartoes);
+          return matched === cartao;
+        })
+        .reduce((sum, t) => sum + (t.valor || 0), 0);
+      return { name: cartao, value: total };
+    }).sort((a, b) => b.value - a.value);
+  }, [todosCartoes, filteredData]);
 
   const totalCartoes = cardSpends.reduce((sum, c) => sum + c.value, 0);
   const maxCardSpend = Math.max(...cardSpends.map(c => c.value), 1);
@@ -211,8 +227,7 @@ export default function Home() {
         </div>
         <div className="flex gap-3 overflow-x-auto pb-4 scroll-snap-x scrollbar-none" style={{ scrollbarWidth: 'none' }}>
           {cardSpends.map(c => {
-            const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-            const estilo = CARTAO_ESTILOS[c.name] || CARTAO_ESTILO_PADRAO;
+            const visual = getCartaoVisual(c.name);
             const isNoGastos = c.value === 0;
 
             return (
@@ -220,14 +235,14 @@ export default function Home() {
                 key={c.name}
                 onClick={() => navigate('/lancamentos')}
                 className={`w-[260px] h-[164px] shrink-0 rounded-2xl p-4 flex flex-col justify-between shadow-[0_8px_20px_rgba(0,0,0,.35)] cursor-pointer hover:opacity-95 transition-all active:scale-[0.98] scroll-snap-align-start relative overflow-hidden ${isNoGastos ? 'opacity-85' : ''}`}
-                style={{ background: `linear-gradient(135deg, ${estilo.from}, ${estilo.to})` }}
+                style={{ background: `linear-gradient(135deg, ${visual.from}, ${visual.to})` }}
               >
                 {/* Decorative circles */}
                 <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full" />
                 <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-white/10 rounded-full" />
 
                 <div className="flex justify-between items-start text-white relative z-10">
-                  <span className="font-bold text-base">{c.name.split(' ')[0]}</span>
+                  <span className="font-bold text-base">{visual.shortName}</span>
                   <span className="text-[10px] font-medium tracking-[1.5px] opacity-85">CRÉDITO</span>
                 </div>
 
