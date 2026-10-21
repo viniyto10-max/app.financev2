@@ -4,6 +4,7 @@
  */
 
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { useLayoutEffect, useRef } from 'react';
 import Home from './pages/Home';
 import Lancamentos from './pages/Lancamentos';
 import Categorias from './pages/Categorias';
@@ -18,6 +19,17 @@ import { MonthProvider } from './components/common/MonthContext';
 function AppLayout() {
   const location = useLocation();
   const path = location.pathname;
+  const shellRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+
+  // Ao montar o app e ao trocar de tela, forçar scrollLeft = 0 no shell, no <main> e no document.scrollingElement
+  useLayoutEffect(() => {
+    if (shellRef.current) shellRef.current.scrollLeft = 0;
+    if (mainRef.current) mainRef.current.scrollLeft = 0;
+    if (document.scrollingElement) document.scrollingElement.scrollLeft = 0;
+    if (document.documentElement) document.documentElement.scrollLeft = 0;
+    if (document.body) document.body.scrollLeft = 0;
+  }, [path]);
 
   let headerConfig = null;
   if (path === '/lancamentos') {
@@ -32,10 +44,16 @@ function AppLayout() {
 
   return (
     <MonthProvider>
-      <div className="flex h-[100dvh] w-full justify-center bg-[var(--bg-app)] sm:bg-[var(--bg-page)]">
-        <div className="relative flex h-[100dvh] w-full sm:max-w-[440px] flex-col overflow-hidden bg-[var(--bg-app)] sm:shadow-[var(--shadow)] sm:border-x sm:border-[var(--border)]">
+      <div className="flex h-[100dvh] w-full justify-center bg-[var(--bg-app)] sm:bg-[var(--bg-page)] overflow-hidden">
+        <div
+          ref={shellRef}
+          className="app-shell relative flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-[var(--bg-app)] sm:shadow-[var(--shadow)] sm:border-x sm:border-[var(--border)]"
+        >
           {headerConfig && <div className="shrink-0 z-40">{headerConfig}</div>}
-          <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden app-content">
+          <main
+            ref={mainRef}
+            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden app-content"
+          >
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/lancamentos" element={<Lancamentos />} />

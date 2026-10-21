@@ -132,7 +132,7 @@ export default function Home() {
                 <ThemeToggle />
               </div>
               
-              <div className="flex-1 px-2">
+              <div className="flex-1 min-w-0 max-w-full px-2">
                 <MonthChips />
               </div>
 
