@@ -9,7 +9,7 @@ import ThemeToggle from '../components/common/ThemeToggle';
 import { PWAInstallButton } from '../components/common/PWAInstallButton';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { CARTOES, isCartao } from '../lib/constants';
+import { CARTOES, isCartao, CARTAO_ESTILOS, CARTAO_ESTILO_PADRAO } from '../lib/constants';
 
 const getCategoryInfo = (categoria: string) => {
   const map: Record<string, { icon: any, color: string }> = {
@@ -194,24 +194,51 @@ export default function Home() {
           <h2 className="font-bold text-lg">Gasto por cartão de crédito</h2>
           <span className="font-bold text-[var(--danger)]">{showValues ? formatCurrency(totalCartoes) : '••••'}</span>
         </div>
-        <div className="flex gap-3 overflow-x-auto scrollbar-none pb-2 scroll-snap-x">
-          {cardSpends.map(c => (
-            <div 
-              key={c.name}
-              onClick={() => navigate('/lancamentos')}
-              className="w-[150px] shrink-0 bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-3 flex flex-col justify-between shadow-[var(--shadow)] cursor-pointer hover:opacity-90 transition-opacity"
-            >
-              <div>
-                <div className="text-xs font-semibold truncate text-[var(--text-primary)]">{c.name}</div>
-                <div className="text-sm font-bold text-[var(--danger)] mt-2">
-                  {showValues ? formatCurrency(c.value) : '••••'}
+        <div className="flex gap-3 overflow-x-auto pb-4 scroll-snap-x scrollbar-none" style={{ scrollbarWidth: 'none' }}>
+          {cardSpends.map(c => {
+            const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+            const estilo = CARTAO_ESTILOS[c.name] || CARTAO_ESTILO_PADRAO;
+            const isNoGastos = c.value === 0;
+
+            return (
+              <div 
+                key={c.name}
+                onClick={() => navigate('/lancamentos')}
+                className={`w-[260px] h-[164px] shrink-0 rounded-2xl p-4 flex flex-col justify-between shadow-[0_8px_20px_rgba(0,0,0,.35)] cursor-pointer hover:opacity-95 transition-all active:scale-[0.98] scroll-snap-align-start relative overflow-hidden ${isNoGastos ? 'opacity-85' : ''}`}
+                style={{ background: `linear-gradient(135deg, ${estilo.from}, ${estilo.to})` }}
+              >
+                {/* Decorative circles */}
+                <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full" />
+                <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-white/10 rounded-full" />
+
+                <div className="flex justify-between items-start text-white relative z-10">
+                  <span className="font-bold text-base">{c.name.split(' ')[0]}</span>
+                  <span className="text-[10px] font-medium tracking-[1.5px] opacity-85">CRÉDITO</span>
+                </div>
+
+                <div className="flex items-center gap-2 relative z-10">
+                  <div className="w-9 h-7 rounded-md bg-gradient-to-br from-[#E6C16A] to-[#B8923A] flex items-center justify-center p-0.5">
+                    <div className="w-full h-full border border-white/30 rounded-[3px]"/>
+                  </div>
+                  <svg className="w-6 h-6 text-white/80" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm2-12h-4c-1.1 0-2 .9-2 2v8l4-2 4 2V10c0-1.1-.9-2-2-2z"/></svg>
+                </div>
+
+                <div className="relative z-10 text-white">
+                  <div className="text-[11px] opacity-80">Fatura do mês</div>
+                  <div className="text-2xl font-bold tabular-nums">
+                    {showValues ? formatCurrency(c.value) : '••••'}
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center text-white relative z-10">
+                  <span className="text-[11px] opacity-85">Em aberto: {showValues ? formatCurrency(c.value) : '••••'}</span>
+                  <div className="w-16 h-1 bg-white/25 rounded-full overflow-hidden">
+                    <div className="bg-white/90 h-full rounded-full" style={{ width: `${(c.value / maxCardSpend) * 100}%` }} />
+                  </div>
                 </div>
               </div>
-              <div className="w-full bg-[var(--border)] h-1.5 rounded-full mt-3 overflow-hidden">
-                <div className="bg-[var(--danger)] h-full rounded-full" style={{ width: `${(c.value / maxCardSpend) * 100}%` }} />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         {!hasCardSpend && <p className="text-xs text-[var(--text-secondary)] mt-1">Sem gastos no cartão neste mês</p>}
       </div>

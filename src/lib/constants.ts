@@ -28,3 +28,14 @@ export const isCartao = (valor: string): boolean => {
   
   return valNorm.includes('cartao') || valNorm.includes('credito');
 };
+
+export const CARTAO_ESTILOS: Record<string, { from: string; to: string }> = {
+  "Mercado Pago Cartão": { from: "#009EE3", to: "#0067B8" },
+  "Inter Cartão":        { from: "#FF8A00", to: "#E85D00" },
+  "PicPay Cartão":       { from: "#21C25E", to: "#0E8F3F" },
+  "Banese Cartão":       { from: "#1E5AA8", to: "#0F3A75" },
+  "Caixa Cartão":        { from: "#0070B8", to: "#00457C" },
+};
+
+export const CARTAO_ESTILO_PADRAO = { from: "#334155", to: "#0F172A" };
+

@@ -3,17 +3,16 @@ import App from './App.tsx';
 import './index.css';
 
 // Register Service Worker for PWA installability and offline support
-if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js', { scope: '/' })
-      .then((registration) => {
-        console.log('[PWA] Service Worker registrado com escopo:', registration.scope);
-      })
-      .catch((error) => {
-        console.error('[PWA] Falha ao registrar Service Worker:', error);
-      });
-  });
+if ("serviceWorker" in navigator) {
+  if (import.meta.env.PROD) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    });
+  } else if (import.meta.env.DEV) {
+    navigator.serviceWorker.getRegistrations()
+      .then(rs => rs.forEach(r => r.unregister()));
+    caches?.keys().then(keys => keys.forEach(k => caches.delete(k)));
+  }
 }
 
 createRoot(document.getElementById('root')!).render(<App />);
