@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useRef, useLayoutEffect } from 'react';
-import { format, subMonths, addMonths, isSameMonth } from 'date-fns';
+import React, { createContext, useContext, useState, useRef } from 'react';
+import { format, subMonths, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface MonthContextType {
@@ -32,59 +32,156 @@ export function useMonth() {
 
 export function MonthChips() {
   const { currentDate, setCurrentDate } = useMonth();
-  const boxRef = useRef<HTMLDivElement>(null);
-  const selectedChipRef = useRef<HTMLButtonElement>(null);
+  const [animatingDir, setAnimatingDir] = useState<'left' | 'right' | null>(null);
 
-  // Gerar lista de meses (ex: 6 meses para trás e 6 meses para frente para cobrir parcelas futuras)
-  const months: Date[] = [];
-  for (let i = -6; i <= 6; i++) {
-    const d = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
-    months.push(d);
-  }
+  // Armazenamento para rastrear início e distância de gestos (touch & pointer/mouse)
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const isPointerDownRef = useRef(false);
 
-  // Centralizar o mês selecionado rolando APENAS o contêiner da linha de chips (sem scrollIntoView)
-  useLayoutEffect(() => {
-    const box = boxRef.current;
-    const el = selectedChipRef.current;
-    if (box && el) {
-      box.scrollTo({
-        left: el.offsetLeft - (box.clientWidth - el.offsetWidth) / 2,
-        behavior: 'auto'
-      });
+  // 3 meses: anterior, atual (centro) e próximo
+  const prevMonth = subMonths(currentDate, 1);
+  const nextMonth = addMonths(currentDate, 1);
+
+  const formatMonthLabel = (d: Date) => {
+    const monthStr = format(d, 'MMM', { locale: ptBR });
+    const capitalized = monthStr.charAt(0).toUpperCase() + monthStr.slice(1);
+    const yearStr = format(d, 'yy');
+    return `${capitalized}/${yearStr}`;
+  };
+
+  const handlePrev = () => {
+    if (animatingDir) return;
+    setAnimatingDir('right');
+    setTimeout(() => {
+      setCurrentDate(prevMonth);
+      setAnimatingDir(null);
+    }, 220);
+  };
+
+  const handleNext = () => {
+    if (animatingDir) return;
+    setAnimatingDir('left');
+    setTimeout(() => {
+      setCurrentDate(nextMonth);
+      setAnimatingDir(null);
+    }, 220);
+  };
+
+  // Suporte a Touch
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      touchStartRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+      };
     }
-  }, [currentDate]);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const touch = e.changedTouches[0];
+    const diffX = touch.clientX - touchStartRef.current.x;
+    const diffY = touch.clientY - touchStartRef.current.y;
+    touchStartRef.current = null;
+
+    // Deslocamento horizontal > 40px e maior que vertical para não atrapalhar scroll da página
+    if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+      if (diffX > 0) {
+        // Deslizar para a DIREITA -> Mês Anterior
+        handlePrev();
+      } else {
+        // Deslizar para a ESQUERDA -> Mês Próximo
+        handleNext();
+      }
+    }
+  };
+
+  // Suporte a Mouse Drag / Pointer
+  const handlePointerDown = (e: React.PointerEvent) => {
+    isPointerDownRef.current = true;
+    touchStartRef.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!isPointerDownRef.current || !touchStartRef.current) return;
+    isPointerDownRef.current = false;
+    const diffX = e.clientX - touchStartRef.current.x;
+    const diffY = e.clientY - touchStartRef.current.y;
+    touchStartRef.current = null;
+
+    if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+      if (diffX > 0) {
+        handlePrev();
+      } else {
+        handleNext();
+      }
+    }
+  };
 
   return (
     <div
-      ref={boxRef}
-      className="w-full max-w-full min-w-0 overflow-x-auto overflow-y-hidden flex flex-nowrap gap-[6px] py-1 scrollbar-none items-center"
+      className="w-full max-w-full overflow-hidden select-none"
       style={{
-        scrollbarWidth: 'none',
-        scrollSnapType: 'x proximity',
-        overscrollBehaviorX: 'contain',
-        touchAction: 'pan-x'
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        touchAction: 'pan-y',
       }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
     >
-      {months.map((d) => {
-        const isSelected = isSameMonth(d, currentDate);
-        const isCurrentYear = d.getFullYear() === new Date().getFullYear();
-        const label = format(d, 'MMM', { locale: ptBR }) + (isCurrentYear ? '' : `/${d.getFullYear().toString().slice(-2)}`);
+      <div
+        className="w-full flex items-center justify-between gap-1.5 transition-transform ease-out"
+        style={{
+          transitionDuration: animatingDir ? '220ms' : '0ms',
+          transform:
+            animatingDir === 'left'
+              ? 'translateX(-12px)'
+              : animatingDir === 'right'
+              ? 'translateX(12px)'
+              : 'translateX(0px)',
+        }}
+      >
+        {/* Mês Anterior (Esquerda) */}
+        <button
+          type="button"
+          onClick={handlePrev}
+          className="flex-1 basis-1/3 min-w-0 h-10 px-1 rounded-full flex items-center justify-center text-xs font-medium text-white/70 transition-all cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis active:scale-95"
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.10)',
+          }}
+          title={formatMonthLabel(prevMonth)}
+        >
+          {formatMonthLabel(prevMonth)}
+        </button>
 
-        return (
-          <button
-            key={d.toISOString()}
-            ref={isSelected ? selectedChipRef : null}
-            onClick={() => setCurrentDate(d)}
-            className={`flex-none shrink-0 whitespace-nowrap px-3 py-1 text-xs font-bold rounded-full transition-all cursor-pointer scroll-snap-align-start ${
-              isSelected
-                ? 'bg-white text-[var(--primary)] shadow-sm scale-105'
-                : 'bg-white/15 text-white hover:bg-white/25'
-            }`}
-          >
-            {label.charAt(0).toUpperCase() + label.slice(1)}
-          </button>
-        );
-      })}
+        {/* Mês Selecionado (Centro) */}
+        <button
+          type="button"
+          className="flex-1 basis-1/3 min-w-0 h-10 px-1 rounded-full flex items-center justify-center text-xs font-bold text-white transition-all cursor-default whitespace-nowrap overflow-hidden text-ellipsis shadow-sm"
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.25)',
+            transform: 'scale(1.05)',
+          }}
+          title={formatMonthLabel(currentDate)}
+        >
+          {formatMonthLabel(currentDate)}
+        </button>
+
+        {/* Mês Próximo (Direita) */}
+        <button
+          type="button"
+          onClick={handleNext}
+          className="flex-1 basis-1/3 min-w-0 h-10 px-1 rounded-full flex items-center justify-center text-xs font-medium text-white/70 transition-all cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis active:scale-95"
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.10)',
+          }}
+          title={formatMonthLabel(nextMonth)}
+        >
+          {formatMonthLabel(nextMonth)}
+        </button>
+      </div>
     </div>
   );
 }

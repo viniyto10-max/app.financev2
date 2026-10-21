@@ -1,4 +1,4 @@
-const CACHE_NAME = 'minhas-economias-v2';
+const CACHE_NAME = 'minhas-economias-v4';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(self.skipWaiting());

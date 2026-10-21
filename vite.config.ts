@@ -21,6 +21,8 @@ export default defineConfig(() => {
           'pwa-192x192.png',
           'pwa-512x512.png',
           'pwa-maskable-512x512.png',
+          'avatars/ahyslla.jpg',
+          'avatars/marcos.jpg',
         ],
         manifest: {
           id: '/',
@@ -31,7 +33,7 @@ export default defineConfig(() => {
           scope: '/',
           display: 'standalone',
           orientation: 'portrait',
-          background_color: '#020617',
+          background_color: '#0B7A43',
           theme_color: '#0B7A43',
           categories: ['finance', 'utilities'],
           icons: [
@@ -39,13 +41,13 @@ export default defineConfig(() => {
               src: '/pwa-192x192.png',
               sizes: '192x192',
               type: 'image/png',
-              purpose: 'any',
+              purpose: 'any maskable',
             },
             {
               src: '/pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'any',
+              purpose: 'any maskable',
             },
             {
               src: '/pwa-maskable-512x512.png',

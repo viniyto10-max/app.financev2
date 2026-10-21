@@ -40,8 +40,8 @@ export const CARTAO_ESTILOS: Record<string, { from: string; to: string }> = {
 export const CARTAO_ESTILO_PADRAO = { from: "#334155", to: "#0F172A" };
 
 export const FOTOS_RESPONSAVEIS: Record<string, string> = {
-  "Ahyslla Vascaina": "/public/assets/aistudio/AirBrush_20251212195427_8acd5982.jpg",
-  "Marcos Andrade": "/public/assets/aistudio/AirBrush_20251128181808_70e5291d.jpg",
+  "Ahyslla Vascaina": "/avatars/ahyslla.jpg",
+  "Marcos Andrade": "/avatars/marcos.jpg",
 };
 
 

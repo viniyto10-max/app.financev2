@@ -8,7 +8,7 @@ export default function BottomNav() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="relative w-full z-40 bg-[var(--nav-bg)] border-t border-[var(--border)] px-4 py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-around items-center">
+    <nav className="bottom-nav fixed left-0 right-0 bottom-0 w-full z-40 bg-[var(--nav-bg)] border-t border-[var(--border)] px-4 py-2 flex justify-around items-center" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
       <button onClick={() => navigate('/')} className="p-2 cursor-pointer transition-opacity hover:opacity-80" aria-label="Dashboard">
         <LayoutDashboard size={24} color={isActive('/') ? 'var(--nav-icon-active)' : 'var(--nav-icon)'} />
       </button>

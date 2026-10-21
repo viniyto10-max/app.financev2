@@ -2,7 +2,7 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/((?!api/|sw\\.js|manifest\\.webmanifest|pwa-.*|apple-touch-icon.*|favicon.*|assets/|.*\\..*).*)",
+      "source": "/((?!api/|sw\\.js|manifest\\.webmanifest|pwa-.*|apple-touch-icon.*|favicon.*|assets/|avatars/|.*\\..*).*)",
       "destination": "/index.html"
     }
   ],

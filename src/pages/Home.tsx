@@ -12,6 +12,7 @@ import { useMonth, MonthChips } from '../components/common/MonthContext';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { CARTOES, isCartao, CARTAO_ESTILOS, CARTAO_ESTILO_PADRAO, FOTOS_RESPONSAVEIS } from '../lib/constants';
+import ResponsavelAvatar from '../components/common/ResponsavelAvatar';
 
 const getCategoryInfo = (categoria: string) => {
   const map: Record<string, { icon: any, color: string }> = {
@@ -115,9 +116,9 @@ export default function Home() {
   if (erro) return <div className="p-4 text-center text-[var(--danger)]">{erro}</div>;
 
   return (
-    <div className="flex flex-col bg-[var(--bg-app)] text-[var(--text-primary)] pb-32">
-        {/* Header (retained as is for layout) */}
-        <div className="bg-gradient-to-b from-[#0B8F4D] to-[#12B76A] dark:from-[#086a3b] dark:to-[#0e8a50] text-white p-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-16 rounded-b-[28px]">
+    <div className="flex flex-col bg-[var(--bg-app)] text-[var(--text-primary)] pb-32 w-full">
+        {/* Header de borda a borda */}
+        <header className="w-full bg-gradient-to-b from-[#0B8F4D] to-[#12B76A] dark:from-[#086a3b] dark:to-[#0e8a50] text-white p-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-16 rounded-b-[28px]">
             <div className="flex justify-between items-center mb-6 relative">
               <div className="flex items-center gap-2">
                 <PWAInstallButton compact />
@@ -131,20 +132,32 @@ export default function Home() {
                 <Bell size={24} />
                 <ThemeToggle />
               </div>
-              
-              <div className="flex-1 min-w-0 max-w-full px-2">
-                <MonthChips />
-              </div>
 
-              <Calendar size={24} onClick={() => setCurrentDate(new Date())} className="cursor-pointer" />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentDate(new Date())}
+                  className="p-1.5 cursor-pointer hover:bg-white/20 rounded-full transition-colors"
+                  aria-label="Ir para o mês atual"
+                  title="Ir para o mês atual"
+                >
+                  <Calendar size={24} />
+                </button>
+              </div>
             </div>
+
             <div className="text-sm opacity-90">Saldo total</div>
             <div className="flex items-center gap-2 mb-2">
                 <span className="text-4xl font-bold">{showValues ? formatCurrency(saldo) : '••••••••'}</span>
                 <button onClick={() => setShowValues(!showValues)} className="cursor-pointer">{showValues ? <Eye size={20}/> : <EyeOff size={20}/>}</button>
             </div>
             <div className="text-xs opacity-80">Atualizado há {Math.floor((new Date().getTime() - lastUpdated.getTime()) / 60000)} minutos</div>
-        </div>
+
+            {/* Seletor de meses em linha própria abaixo do saldo e acima dos cards */}
+            <div className="mt-3 mb-4 w-full">
+              <MonthChips />
+            </div>
+        </header>
 
       <div className="px-4 -mt-10 grid grid-cols-2 gap-4">
         <div className="bg-[var(--bg-card)] p-4 rounded-2xl shadow-[var(--shadow)] border border-[var(--border)]">
@@ -257,20 +270,7 @@ export default function Home() {
             return (
               <div key={r.name} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 shadow-[var(--shadow)]">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-[56px] h-[56px] rounded-full bg-[var(--bg-input)] border-2 border-[var(--primary)] shadow-[0_4px_12px_rgba(0,0,0,.3)] overflow-hidden shrink-0">
-                    {fotoUrl ? (
-                      <img 
-                        src={fotoUrl} 
-                        alt={r.name}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                        onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex'; }}
-                      />
-                    ) : null}
-                    <div className={`w-full h-full items-center justify-center bg-[var(--primary-soft)] text-[var(--primary)] font-bold text-[22px] ${fotoUrl ? 'hidden' : 'flex'}`}>
-                      {initial}
-                    </div>
-                  </div>
+                  <ResponsavelAvatar name={r.name} fotoUrl={fotoUrl} size={56} />
                   <div className="flex flex-col">
                     <div className="font-bold text-[17px] text-[var(--text-primary)] truncate">{r.name}</div>
                     <div className="text-xs text-[var(--text-secondary)]">Saldo: {showValues ? formatCurrency(r.saldo) : '••••'}</div>

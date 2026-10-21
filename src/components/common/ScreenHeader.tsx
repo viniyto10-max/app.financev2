@@ -9,7 +9,7 @@ interface ScreenHeaderProps {
 
 export const ScreenHeader: React.FC<ScreenHeaderProps> = ({ icon, title, subtitle }) => {
   return (
-    <div className="relative overflow-hidden w-full rounded-b-[28px] shadow-[0_8px_24px_rgba(0,0,0,.25)]" style={{ background: 'var(--header-gradient)' }}>
+    <header className="relative overflow-hidden w-full rounded-b-[28px] shadow-[0_8px_24px_rgba(0,0,0,.25)]" style={{ background: 'var(--header-gradient)' }}>
       {/* Decorative circles */}
       <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full z-0" />
       <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-white/10 rounded-full z-0" />
@@ -30,6 +30,6 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({ icon, title, subtitl
           <ThemeToggle />
         </div>
       </div>
-    </div>
+    </header>
   );
 };

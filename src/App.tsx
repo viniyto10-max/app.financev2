@@ -44,28 +44,24 @@ function AppLayout() {
 
   return (
     <MonthProvider>
-      <div className="flex h-[100dvh] w-full justify-center bg-[var(--bg-app)] sm:bg-[var(--bg-page)] overflow-hidden">
-        <div
-          ref={shellRef}
-          className="app-shell relative flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-[var(--bg-app)] sm:shadow-[var(--shadow)] sm:border-x sm:border-[var(--border)]"
+      <div
+        ref={shellRef}
+        className="app-shell flex h-[100dvh] w-full flex-col bg-[var(--bg-app)] overflow-hidden"
+      >
+        {headerConfig && <div className="shrink-0 z-40 w-full">{headerConfig}</div>}
+        <main
+          ref={mainRef}
+          className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden app-content w-full"
         >
-          {headerConfig && <div className="shrink-0 z-40">{headerConfig}</div>}
-          <main
-            ref={mainRef}
-            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden app-content"
-          >
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/lancamentos" element={<Lancamentos />} />
-              <Route path="/categorias" element={<Categorias />} />
-              <Route path="/analises" element={<Analises />} />
-              <Route path="/novo" element={<NovoLancamento />} />
-            </Routes>
-          </main>
-          <footer className="relative z-50 shrink-0 w-full">
-            <BottomNav />
-          </footer>
-        </div>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/lancamentos" element={<Lancamentos />} />
+            <Route path="/categorias" element={<Categorias />} />
+            <Route path="/analises" element={<Analises />} />
+            <Route path="/novo" element={<NovoLancamento />} />
+          </Routes>
+        </main>
+        <BottomNav />
       </div>
     </MonthProvider>
   );
