@@ -5,8 +5,9 @@ import { Transaction } from '../types';
 import { formatCurrency } from '../lib/utils';
 import { 
   Search, X, Filter, ChevronRight, Calendar, ArrowUpCircle, ArrowDownCircle, 
-  ShoppingBag, Wifi, Coffee, Heart, BookOpen, Shirt, Tv, Zap, Droplet, Fuel, DollarSign, Briefcase, RefreshCw 
+  ShoppingBag, Wifi, Coffee, Heart, BookOpen, Shirt, Tv, Zap, Droplet, Fuel, DollarSign, Briefcase, RefreshCw, ReceiptText 
 } from 'lucide-react';
+import { ScreenHeader } from '../components/common/ScreenHeader';
 import { format, isToday, isYesterday, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useSearchParams } from 'react-router-dom';
@@ -137,14 +138,9 @@ export default function Lancamentos() {
   const activeFiltersCount = selectedBancos.length + selectedCategorias.length + selectedResponsaveis.length;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)]">
-      <header className="py-3 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] flex justify-between items-center sticky top-0 z-40" style={{ background: 'var(--header-gradient)' }}>
-        <h1 className="text-lg font-bold text-white">Lançamentos</h1>
-        <ThemeToggle />
-      </header>
-
+    <div className="flex flex-col space-y-4 pb-20">
       {/* Sticky Filter & Search Bar */}
-      <div className="sticky top-[52px] z-30 bg-[var(--bg-app)] border-b border-[var(--border)] px-4 py-3 space-y-3">
+      <div className="sticky top-0 z-30 bg-[var(--bg-app)] border-b border-[var(--border)] px-4 py-2.5 space-y-2.5">
         {/* Busca */}
         <div className="relative">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
@@ -222,7 +218,7 @@ export default function Lancamentos() {
         {erro && (
           <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-3 flex justify-between items-center text-xs">
             <span className="text-[var(--danger)]">Não foi possível atualizar.</span>
-            <button onClick={recarregar} className="px-3 py-1 bg-[var(--primary)] text-white rounded-lg font-bold">Tentar de novo</button>
+            <button onClick={() => recarregar()} className="px-3 py-1 bg-[var(--primary)] text-white rounded-lg font-bold">Tentar de novo</button>
           </div>
         )}
 

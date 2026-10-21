@@ -61,8 +61,10 @@ export function useLancamentos() {
   const [erro, setErro] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  const recarregar = useCallback(async () => {
-    setLoading(true);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  const recarregar = useCallback(async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     setErro(null);
     try {
       let csvText = '';
@@ -71,9 +73,7 @@ export function useLancamentos() {
         if (proxyRes.ok) {
           csvText = await proxyRes.text();
         }
-      } catch {
-        // proxy attempt failed, fallback to direct url
-      }
+      } catch { }
 
       if (!csvText) {
         try {
@@ -81,13 +81,12 @@ export function useLancamentos() {
           if (directRes.ok) {
             csvText = await directRes.text();
           }
-        } catch {
-          // direct fetch failed
-        }
+        } catch { }
       }
 
       if (!csvText) {
-        throw new Error('Não foi possível carregar os dados da planilha.');
+        if (!isInitialized) throw new Error('Não foi possível carregar os dados da planilha.');
+        return;
       }
       
       Papa.parse(csvText, {
@@ -98,25 +97,26 @@ export function useLancamentos() {
             .filter(row => getRowValue(row, ['Carimbo data/hora', 'Data', 'Data e Hora']))
             .map(normalizeTransaction);
           
-          setLancamentos(parsedData);
-          setLastUpdated(new Date());
-          localStorage.setItem('lancamentos_cache', JSON.stringify(parsedData));
+          if (JSON.stringify(parsedData) !== JSON.stringify(lancamentos)) {
+            setLancamentos(parsedData);
+            setLastUpdated(new Date());
+            localStorage.setItem('lancamentos_cache', JSON.stringify(parsedData));
+          }
         },
         error: (err: Error) => {
-          setErro(err.message);
+          if (!isInitialized) setErro(err.message);
         }
       });
     } catch {
-      setErro('Erro ao carregar dados. Usando dados locais.');
+      if (!isInitialized) setErro('Erro ao carregar dados. Usando dados locais.');
     } finally {
       setLoading(false);
+      setIsInitialized(true);
     }
-  }, []);
+  }, [lancamentos, isInitialized]);
 
   useEffect(() => {
     recarregar();
-    const interval = setInterval(recarregar, 60000);
-    return () => clearInterval(interval);
   }, [recarregar]);
 
   return { lancamentos, loading, erro, recarregar, lastUpdated };

@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { Bell, Calendar, Eye, EyeOff, ChevronRight, ArrowUpCircle, ArrowDownCircle, ShoppingBag, Wifi, Coffee, Heart, BookOpen, Shirt, Tv, Zap, Droplet, Fuel, DollarSign, Briefcase } from 'lucide-react';
+import { Bell, Calendar, Eye, EyeOff, ChevronRight, ArrowUpCircle, ArrowDownCircle, ShoppingBag, Wifi, Coffee, Heart, BookOpen, Shirt, Tv, Zap, Droplet, Fuel, DollarSign, Briefcase, BellRing, BellOff } from 'lucide-react';
 import { formatCurrency } from '../lib/utils';
 import { useLancamentos } from '../hooks/useLancamentos';
+import { useNotification } from '../hooks/useNotification';
 import { format, subMonths, addMonths, isSameMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion } from 'framer-motion';
 import ThemeToggle from '../components/common/ThemeToggle';
 import { PWAInstallButton } from '../components/common/PWAInstallButton';
+import { useMonth, MonthChips } from '../components/common/MonthContext';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { CARTOES, isCartao, CARTAO_ESTILOS, CARTAO_ESTILO_PADRAO } from '../lib/constants';
+import { CARTOES, isCartao, CARTAO_ESTILOS, CARTAO_ESTILO_PADRAO, FOTOS_RESPONSAVEIS } from '../lib/constants';
 
 const getCategoryInfo = (categoria: string) => {
   const map: Record<string, { icon: any, color: string }> = {
@@ -30,8 +32,9 @@ const getCategoryInfo = (categoria: string) => {
 
 export default function Home() {
   const { lancamentos, loading, erro, lastUpdated } = useLancamentos();
+  const { enabled, toggleNotifications } = useNotification();
+  const { currentDate, setCurrentDate } = useMonth();
   const [showValues, setShowValues] = useState(true);
-  const [currentDate, setCurrentDate] = useState(new Date());
   const navigate = useNavigate();
 
   const handleDragEnd = (_: any, info: any) => {
@@ -118,20 +121,19 @@ export default function Home() {
             <div className="flex justify-between items-center mb-6 relative">
               <div className="flex items-center gap-2">
                 <PWAInstallButton compact />
+                <button 
+                  onClick={() => toggleNotifications(!enabled)}
+                  className="p-1.5 cursor-pointer hover:bg-white/20 rounded-full transition-colors"
+                  aria-label="Notificações"
+                >
+                  {enabled ? <BellRing size={22} /> : <BellOff size={22} />}
+                </button>
                 <Bell size={24} />
                 <ThemeToggle />
               </div>
               
-              <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center gap-6 font-bold w-48 overflow-hidden">
-                 <motion.div 
-                    className="flex gap-6 items-center cursor-grab"
-                    drag="x" dragConstraints={{ left: 0, right: 0 }}
-                    onDragEnd={handleDragEnd}
-                 >
-                    <span className="opacity-70 text-sm whitespace-nowrap cursor-pointer" onClick={() => setCurrentDate(subMonths(currentDate, 1))}>{format(subMonths(currentDate, 1), 'MMM', { locale: ptBR })}</span>
-                    <span className="border-b-2 border-white text-base whitespace-nowrap">{format(currentDate, 'MMM', { locale: ptBR })}</span>
-                    <span className="opacity-70 text-sm whitespace-nowrap cursor-pointer" onClick={() => setCurrentDate(addMonths(currentDate, 1))}>{format(addMonths(currentDate, 1), 'MMM', { locale: ptBR })}</span>
-                 </motion.div>
+              <div className="flex-1 px-2">
+                <MonthChips />
               </div>
 
               <Calendar size={24} onClick={() => setCurrentDate(new Date())} className="cursor-pointer" />
@@ -249,13 +251,30 @@ export default function Home() {
         <div className="space-y-3">
           {responsavelStats.map(r => {
             const initial = r.name ? r.name.charAt(0).toUpperCase() : '?';
+            const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+            const fotoUrl = FOTOS_RESPONSAVEIS[Object.keys(FOTOS_RESPONSAVEIS).find(k => norm(k) === norm(r.name)) || ''] || '';
+            
             return (
-              <div key={r.name} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 shadow-[var(--shadow)] space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] flex items-center justify-center font-bold text-xs shrink-0">
-                    {initial}
+              <div key={r.name} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 shadow-[var(--shadow)]">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-[56px] h-[56px] rounded-full bg-[var(--bg-input)] border-2 border-[var(--primary)] shadow-[0_4px_12px_rgba(0,0,0,.3)] overflow-hidden shrink-0">
+                    {fotoUrl ? (
+                      <img 
+                        src={fotoUrl} 
+                        alt={r.name}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex'; }}
+                      />
+                    ) : null}
+                    <div className={`w-full h-full items-center justify-center bg-[var(--primary-soft)] text-[var(--primary)] font-bold text-[22px] ${fotoUrl ? 'hidden' : 'flex'}`}>
+                      {initial}
+                    </div>
                   </div>
-                  <div className="font-semibold text-sm truncate">{r.name}</div>
+                  <div className="flex flex-col">
+                    <div className="font-bold text-[17px] text-[var(--text-primary)] truncate">{r.name}</div>
+                    <div className="text-xs text-[var(--text-secondary)]">Saldo: {showValues ? formatCurrency(r.saldo) : '••••'}</div>
+                  </div>
                 </div>
 
                 <div className="space-y-1.5 text-xs">
