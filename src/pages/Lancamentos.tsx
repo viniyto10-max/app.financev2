@@ -5,7 +5,7 @@ import { Transaction } from '../types';
 import { formatCurrency } from '../lib/utils';
 import { 
   Search, X, Filter, ChevronRight, Calendar, ArrowUpCircle, ArrowDownCircle, 
-  ShoppingBag, Wifi, Coffee, Heart, BookOpen, Shirt, Tv, Zap, Droplet, Fuel, DollarSign, Briefcase, RefreshCw, ReceiptText 
+  ShoppingBag, Wifi, Coffee, Heart, BookOpen, Shirt, Tv, Zap, Droplet, Fuel, DollarSign, Briefcase, RefreshCw, ReceiptText, Dumbbell 
 } from 'lucide-react';
 import { ScreenHeader } from '../components/common/ScreenHeader';
 import { format, isToday, isYesterday, parseISO, isValid } from 'date-fns';
@@ -14,6 +14,7 @@ import { useSearchParams } from 'react-router-dom';
 
 const getCategoryInfo = (categoria: string) => {
   const map: Record<string, { icon: any, color: string }> = {
+    'Academia': { icon: Dumbbell, color: 'text-emerald-500' },
     'Alimentação': { icon: Coffee, color: 'text-orange-500' },
     'Mercado Livre': { icon: ShoppingBag, color: 'text-yellow-500' },
     'Internet': { icon: Wifi, color: 'text-blue-500' },

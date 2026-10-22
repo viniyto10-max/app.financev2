@@ -103,9 +103,6 @@ export default defineConfig(() => {
               if (id.includes('date-fns') || id.includes('papaparse')) {
                 return 'utils';
               }
-              if (id.includes('framer-motion') || id.includes('motion')) {
-                return 'motion';
-              }
               if (id.includes('react-router-dom') || id.includes('react-dom') || id.includes('react')) {
                 return 'react-vendor';
               }

@@ -807,8 +807,8 @@ export default function Analises() {
                         fontSize: '12px'
                       }}
                     />
-                    <Bar dataKey="entradas" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={20} />
-                    <Bar dataKey="saidas" fill="#EF4444" radius={[4, 4, 0, 0]} maxBarSize={20} />
+                    <Bar dataKey="entradas" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={20} isAnimationActive={false} />
+                    <Bar dataKey="saidas" fill="#EF4444" radius={[4, 4, 0, 0]} maxBarSize={20} isAnimationActive={false} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -867,12 +867,14 @@ export default function Analises() {
                       dataKey="saldoAcumulado" 
                       fill="url(#saldoGradient)" 
                       stroke="none" 
+                      isAnimationActive={false}
                     />
                     <Line 
                       type="monotone" 
                       dataKey="saldoAcumulado" 
                       stroke="#10B981" 
                       strokeWidth={2.5}
+                      isAnimationActive={false}
                       dot={(props: any) => {
                         const { cx, cy, payload } = props;
                         if (payload.isCurrentMonth) {
@@ -1061,7 +1063,7 @@ export default function Analises() {
                           fontSize: '12px'
                         }}
                       />
-                      <Bar dataKey="gasto" fill="#F59E0B" radius={[4, 4, 0, 0]} maxBarSize={24} />
+                      <Bar dataKey="gasto" fill="#F59E0B" radius={[4, 4, 0, 0]} maxBarSize={24} isAnimationActive={false} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

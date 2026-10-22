@@ -5,7 +5,7 @@ import {
   PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip 
 } from 'recharts';
 import { 
-  Plus, Coffee, ShoppingBag, Wifi, Zap, Heart, BookOpen, Shirt, Tv, Fuel, Droplet, DollarSign, Briefcase, Tag, TrendingUp, TrendingDown 
+  Plus, Coffee, ShoppingBag, Wifi, Zap, Heart, BookOpen, Shirt, Tv, Fuel, Droplet, DollarSign, Briefcase, Tag, TrendingUp, TrendingDown, Dumbbell 
 } from 'lucide-react';
 import { useMonth, MonthChips } from '../components/common/MonthContext';
 import { useLancamentos } from '../hooks/useLancamentos';
@@ -21,6 +21,7 @@ interface CategoryVisual {
 }
 
 const CATEGORY_MAP: Record<string, CategoryVisual> = {
+  'Academia': { icon: Dumbbell, colorHex: '#10B981', bgClass: 'bg-emerald-500/15', textClass: 'text-emerald-500' },
   'Alimentação': { icon: Coffee, colorHex: '#F97316', bgClass: 'bg-orange-500/15', textClass: 'text-orange-500' },
   'Mercado Livre': { icon: ShoppingBag, colorHex: '#EAB308', bgClass: 'bg-yellow-500/15', textClass: 'text-yellow-500' },
   'Internet': { icon: Wifi, colorHex: '#3B82F6', bgClass: 'bg-blue-500/15', textClass: 'text-blue-500' },
@@ -289,6 +290,7 @@ export default function Categorias() {
                       outerRadius={88}
                       paddingAngle={3}
                       stroke="transparent"
+                      isAnimationActive={false}
                     >
                       {chartData.map((entry, idx) => (
                         <Cell key={`cell-${idx}`} fill={entry.color} />

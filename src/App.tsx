@@ -4,14 +4,15 @@
  */
 
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { useLayoutEffect, useRef, lazy, Suspense } from 'react';
+import { useLayoutEffect, useEffect, useRef, lazy, Suspense } from 'react';
+import Home from './pages/Home';
 import BottomNav from './components/common/BottomNav';
 import { ScreenHeader } from './components/common/ScreenHeader';
 import { ReceiptText, Plus, PieChart, BarChart3 } from 'lucide-react';
 
 import { MonthProvider } from './components/common/MonthContext';
+import { LancamentosProvider } from './context/LancamentosContext';
 
-const Home = lazy(() => import('./pages/Home'));
 const Lancamentos = lazy(() => import('./pages/Lancamentos'));
 const Categorias = lazy(() => import('./pages/Categorias'));
 const Analises = lazy(() => import('./pages/Analises'));
@@ -41,6 +42,21 @@ function AppLayout() {
     if (document.documentElement) document.documentElement.scrollLeft = 0;
     if (document.body) document.body.scrollLeft = 0;
   }, [path]);
+
+  // Pré-carregamento dinâmico das outras rotas em background após a montagem da Home
+  useEffect(() => {
+    const preload = () => {
+      import('./pages/Lancamentos');
+      import('./pages/Categorias');
+      import('./pages/Analises');
+      import('./pages/NovoLancamento');
+    };
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      window.requestIdleCallback(preload);
+    } else {
+      setTimeout(preload, 1000);
+    }
+  }, []);
 
   let headerConfig = null;
   if (path === '/lancamentos') {
@@ -83,7 +99,9 @@ function AppLayout() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AppLayout />
+      <LancamentosProvider>
+        <AppLayout />
+      </LancamentosProvider>
     </BrowserRouter>
   );
 }

@@ -98,9 +98,7 @@ html, body, #root {
   box-sizing: border-box;
 }
 
-body {
-  transition: background-color .2s, color .2s, border-color .2s;
-}
+
 
 [data-theme="dark"] input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   filter: invert(1);

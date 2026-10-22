@@ -7,6 +7,7 @@ import { gerarParcelas } from '../../lib/parcelas';
 import { formatCurrency } from '../../lib/utils';
 
 const CATEGORIAS = [
+  'Academia',
   'Assinaturas digitais',
   'Àgua',
   'Chacará',
