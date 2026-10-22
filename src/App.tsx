@@ -4,17 +4,28 @@
  */
 
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { useLayoutEffect, useRef } from 'react';
-import Home from './pages/Home';
-import Lancamentos from './pages/Lancamentos';
-import Categorias from './pages/Categorias';
-import Analises from './pages/Analises';
-import NovoLancamento from './pages/NovoLancamento';
+import { useLayoutEffect, useRef, lazy, Suspense } from 'react';
 import BottomNav from './components/common/BottomNav';
 import { ScreenHeader } from './components/common/ScreenHeader';
 import { ReceiptText, Plus, PieChart, BarChart3 } from 'lucide-react';
 
 import { MonthProvider } from './components/common/MonthContext';
+
+const Home = lazy(() => import('./pages/Home'));
+const Lancamentos = lazy(() => import('./pages/Lancamentos'));
+const Categorias = lazy(() => import('./pages/Categorias'));
+const Analises = lazy(() => import('./pages/Analises'));
+const NovoLancamento = lazy(() => import('./pages/NovoLancamento'));
+
+function PageFallback() {
+  return (
+    <div className="p-4 space-y-4 animate-pulse">
+      <div className="h-36 bg-[var(--bg-card)] rounded-2xl w-full" />
+      <div className="h-24 bg-[var(--bg-card)] rounded-2xl w-full" />
+      <div className="h-48 bg-[var(--bg-card)] rounded-2xl w-full" />
+    </div>
+  );
+}
 
 function AppLayout() {
   const location = useLocation();
@@ -53,13 +64,15 @@ function AppLayout() {
           ref={mainRef}
           className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden app-content w-full"
         >
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/lancamentos" element={<Lancamentos />} />
-            <Route path="/categorias" element={<Categorias />} />
-            <Route path="/analises" element={<Analises />} />
-            <Route path="/novo" element={<NovoLancamento />} />
-          </Routes>
+          <Suspense fallback={<PageFallback />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/lancamentos" element={<Lancamentos />} />
+              <Route path="/categorias" element={<Categorias />} />
+              <Route path="/analises" element={<Analises />} />
+              <Route path="/novo" element={<NovoLancamento />} />
+            </Routes>
+          </Suspense>
         </main>
         <BottomNav />
       </div>

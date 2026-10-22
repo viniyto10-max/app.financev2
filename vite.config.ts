@@ -86,7 +86,32 @@ export default defineConfig(() => {
     ],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(import.meta.dirname, '.'),
+      },
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('recharts')) {
+                return 'recharts';
+              }
+              if (id.includes('lucide-react')) {
+                return 'icons';
+              }
+              if (id.includes('date-fns') || id.includes('papaparse')) {
+                return 'utils';
+              }
+              if (id.includes('framer-motion') || id.includes('motion')) {
+                return 'motion';
+              }
+              if (id.includes('react-router-dom') || id.includes('react-dom') || id.includes('react')) {
+                return 'react-vendor';
+              }
+            }
+          },
+        },
       },
     },
     server: {
