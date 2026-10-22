@@ -1,9 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Papa from 'papaparse';
 import { Transaction } from '../types';
 import { parseBRL } from '../lib/utils';
 
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTOrJlqr_-rkEfKEGWI6IdX-sBbOc9ZE12Bn7NcWXcc13rKBmaBugAxFMqchuU17McomYpvZAkD3-ry/pub?gid=1786232658&single=true&output=csv';
+
+export type SyncStatus = 'sincronizado' | 'atualizando' | 'falha' | 'desatualizado' | 'pendente';
 
 export interface ToastInfo {
   message: string;
@@ -17,6 +19,9 @@ interface LancamentosContextType {
   erro: string | null;
   recarregar: (isBackground?: boolean) => Promise<{ success: boolean; count: number; error?: string }>;
   lastUpdated: Date;
+  lastSuccessfulSync: Date | null;
+  syncStatus: SyncStatus;
+  pendingCount: number;
   adicionarLancamentos: (novos: Transaction[]) => void;
   toast: ToastInfo | null;
   clearToast: () => void;
@@ -217,10 +222,50 @@ export const LancamentosProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return new Date();
   });
 
+  const [lastSuccessfulSync, setLastSuccessfulSync] = useState<Date | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const ts = localStorage.getItem('last_successful_sync_ts');
+    if (ts) {
+      const num = Number(ts);
+      if (!isNaN(num) && num > 0) return new Date(num);
+    }
+    const cachedTs = localStorage.getItem('lancamentos_cache_ts');
+    if (cachedTs) {
+      const num = Number(cachedTs);
+      if (!isNaN(num) && num > 0) return new Date(num);
+    }
+    return null;
+  });
+
+  const [pendingCount, setPendingCount] = useState<number>(() => {
+    return getPendingLocalLancamentos().length;
+  });
+
   const [loading, setLoading] = useState<boolean>(() => lancamentos.length === 0);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [erro, setErro] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastInfo | null>(null);
+
+  const syncStatus: SyncStatus = useMemo(() => {
+    if (isRefreshing || (loading && lancamentos.length === 0)) {
+      return 'atualizando';
+    }
+    if (pendingCount > 0) {
+      return 'pendente';
+    }
+    if (erro) {
+      return 'falha';
+    }
+    if (lastSuccessfulSync) {
+      const diffMs = Date.now() - lastSuccessfulSync.getTime();
+      if (diffMs > 2 * 60 * 60 * 1000) {
+        return 'desatualizado';
+      }
+    } else {
+      return 'desatualizado';
+    }
+    return 'sincronizado';
+  }, [isRefreshing, loading, lancamentos.length, pendingCount, erro, lastSuccessfulSync]);
 
   const fetchPromiseRef = useRef<Promise<{ success: boolean; count: number; error?: string }> | null>(null);
   const lastFetchTimeRef = useRef<number>(0);
@@ -273,6 +318,7 @@ export const LancamentosProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
 
     setLastUpdated(new Date());
+    setPendingCount(getPendingLocalLancamentos().length);
   }, []);
 
   const recarregar = useCallback(async (isBackground = false): Promise<{ success: boolean; count: number; error?: string }> => {
@@ -341,6 +387,9 @@ export const LancamentosProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 setLancamentos(mergedData);
                 lancamentosRef.current = mergedData;
                 setLastUpdated(now);
+                setLastSuccessfulSync(now);
+                localStorage.setItem('last_successful_sync_ts', String(nowTs));
+                setPendingCount(getPendingLocalLancamentos().length);
                 lastFetchTimeRef.current = nowTs;
 
                 saveToCache(mergedData, nowTs);
@@ -407,6 +456,9 @@ export const LancamentosProvider: React.FC<{ children: React.ReactNode }> = ({ c
       erro,
       recarregar,
       lastUpdated,
+      lastSuccessfulSync,
+      syncStatus,
+      pendingCount,
       adicionarLancamentos,
       toast,
       clearToast,

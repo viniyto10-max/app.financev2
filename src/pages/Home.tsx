@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { CARTOES, isCartao, FOTOS_RESPONSAVEIS, matchCartao, getCartaoVisual } from '../lib/constants';
 import ResponsavelAvatar from '../components/common/ResponsavelAvatar';
+import { SyncStatusIndicator } from '../components/common/SyncStatusIndicator';
 
 const getCategoryInfo = (categoria: string) => {
   const map: Record<string, { icon: any, color: string }> = {
@@ -238,7 +239,7 @@ export default function Home() {
             <ThemeToggle />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col items-end gap-2">
             <button
               type="button"
               onClick={() => setCurrentDate(new Date())}
@@ -248,6 +249,7 @@ export default function Home() {
             >
               <Calendar size={24} />
             </button>
+            <SyncStatusIndicator compact />
           </div>
         </div>
 
