@@ -5,6 +5,8 @@ import { format } from 'date-fns';
 import { FORMAS_PAGAMENTO, isCartao } from '../../lib/constants';
 import { gerarParcelas } from '../../lib/parcelas';
 import { formatCurrency } from '../../lib/utils';
+import { useLancamentos } from '../../hooks/useLancamentos';
+import { Transaction } from '../../types';
 
 const CATEGORIAS = [
   'Academia',
@@ -29,6 +31,7 @@ const RESPONSAVEIS = ['Ahyslla Vascaina', 'Marcos Andrade'];
 const OPCOES_PARCELAS = Array.from({ length: 24 }, (_, i) => i + 1);
 
 export default function FormLancamento({ onOpenIntegracoes }: { onOpenIntegracoes: () => void }) {
+  const { adicionarLancamentos, recarregar, showToast } = useLancamentos();
   const [tipo, setTipo] = useState<'Entrada' | 'Saída'>('Saída');
   const [dataHora, setDataHora] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const [valor, setValor] = useState('');
@@ -134,6 +137,8 @@ export default function FormLancamento({ onOpenIntegracoes }: { onOpenIntegracoe
 
     setLoading(true);
 
+    const novosLancamentos: Transaction[] = [];
+
     let index = 0;
     for (const parcela of parcelasCalculadas) {
       index++;
@@ -163,20 +168,39 @@ export default function FormLancamento({ onOpenIntegracoes }: { onOpenIntegracoe
 
       try {
         await enviarParaWebhook(webhookUrl, payload);
+        novosLancamentos.push({
+          id: `${idCompra}-${parcela.numero}`,
+          data_hora: parcela.data,
+          movimento: tipo,
+          banco,
+          categoria,
+          responsavel,
+          descricao: descricaoFinal,
+          valor: Number(parcela.valor),
+          confirmado: Boolean(confirmado),
+        });
       } catch (err) {
         console.error(err);
         alert(`Erro ao enviar a parcela ${index} de ${n}. ${index - 1} já foram salvas. Verifique a planilha.`);
+        if (novosLancamentos.length > 0) {
+          adicionarLancamentos(novosLancamentos);
+        }
         setLoading(false);
         setLoadingProgress(null);
         return;
       }
     }
 
-    if (n > 1) {
-      alert(`${n} parcelas salvas com sucesso!`);
-    } else {
-      alert("Registro salvo com sucesso!");
-    }
+    // Adiciona instantaneamente todos os novos lançamentos ao estado compartilhado do app
+    adicionarLancamentos(novosLancamentos);
+
+    showToast(
+      n > 1 ? `${n} parcelas salvas e sincronizadas!` : 'Lançamento salvo e sincronizado!',
+      'success'
+    );
+
+    // Dispara recarregamento em segundo plano sem bloquear a UI
+    recarregar(true);
 
     setValor('');
     setDescricao('');

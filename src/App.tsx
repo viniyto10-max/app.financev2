@@ -8,6 +8,8 @@ import { useLayoutEffect, useEffect, useRef, lazy, Suspense } from 'react';
 import Home from './pages/Home';
 import BottomNav from './components/common/BottomNav';
 import { ScreenHeader } from './components/common/ScreenHeader';
+import ToastNotification from './components/common/ToastNotification';
+import PullToRefresh from './components/common/PullToRefresh';
 import { ReceiptText, Plus, PieChart, BarChart3 } from 'lucide-react';
 
 import { MonthProvider } from './components/common/MonthContext';
@@ -73,22 +75,25 @@ function AppLayout() {
     <MonthProvider>
       <div
         ref={shellRef}
-        className="app-shell flex h-[100dvh] w-full flex-col bg-[var(--bg-app)] overflow-hidden"
+        className="app-shell flex h-[100dvh] w-full flex-col bg-[var(--bg-app)] overflow-hidden relative"
       >
+        <ToastNotification />
         {headerConfig && <div className="shrink-0 z-40 w-full">{headerConfig}</div>}
         <main
           ref={mainRef}
           className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden app-content w-full"
         >
-          <Suspense fallback={<PageFallback />}>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/lancamentos" element={<Lancamentos />} />
-              <Route path="/categorias" element={<Categorias />} />
-              <Route path="/analises" element={<Analises />} />
-              <Route path="/novo" element={<NovoLancamento />} />
-            </Routes>
-          </Suspense>
+          <PullToRefresh containerRef={mainRef}>
+            <Suspense fallback={<PageFallback />}>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/lancamentos" element={<Lancamentos />} />
+                <Route path="/categorias" element={<Categorias />} />
+                <Route path="/analises" element={<Analises />} />
+                <Route path="/novo" element={<NovoLancamento />} />
+              </Routes>
+            </Suspense>
+          </PullToRefresh>
         </main>
         <BottomNav />
       </div>

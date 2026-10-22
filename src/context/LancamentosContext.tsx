@@ -5,12 +5,23 @@ import { parseBRL } from '../lib/utils';
 
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTOrJlqr_-rkEfKEGWI6IdX-sBbOc9ZE12Bn7NcWXcc13rKBmaBugAxFMqchuU17McomYpvZAkD3-ry/pub?gid=1786232658&single=true&output=csv';
 
+export interface ToastInfo {
+  message: string;
+  type: 'success' | 'error' | 'info';
+  id: number;
+}
+
 interface LancamentosContextType {
   lancamentos: Transaction[];
   loading: boolean;
   erro: string | null;
-  recarregar: (isBackground?: boolean) => Promise<void>;
+  recarregar: (isBackground?: boolean) => Promise<{ success: boolean; count: number; error?: string }>;
   lastUpdated: Date;
+  adicionarLancamentos: (novos: Transaction[]) => void;
+  toast: ToastInfo | null;
+  clearToast: () => void;
+  showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+  isRefreshing: boolean;
 }
 
 const LancamentosContext = createContext<LancamentosContextType | null>(null);
@@ -110,6 +121,31 @@ const processRows = (rows: any[], headerMap: HeaderMap): Transaction[] => {
   return Array.from(mapById.values());
 };
 
+const getPendingLocalLancamentos = (): Transaction[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem('pending_local_lancamentos');
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((t: any) => ({
+      ...t,
+      data_hora: new Date(t.data_hora),
+    }));
+  } catch {
+    return [];
+  }
+};
+
+const savePendingLocalLancamentos = (pending: Transaction[]) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem('pending_local_lancamentos', JSON.stringify(pending));
+  } catch (err) {
+    console.error('Error saving pending local lancamentos', err);
+  }
+};
+
 const saveToCache = (data: Transaction[], timestamp: number) => {
   const save = () => {
     try {
@@ -182,49 +218,134 @@ export const LancamentosProvider: React.FC<{ children: React.ReactNode }> = ({ c
   });
 
   const [loading, setLoading] = useState<boolean>(() => lancamentos.length === 0);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [toast, setToast] = useState<ToastInfo | null>(null);
 
-  const fetchPromiseRef = useRef<Promise<void> | null>(null);
+  const fetchPromiseRef = useRef<Promise<{ success: boolean; count: number; error?: string }> | null>(null);
   const lastFetchTimeRef = useRef<number>(0);
   const lancamentosRef = useRef<Transaction[]>(lancamentos);
   lancamentosRef.current = lancamentos;
 
-  const recarregar = useCallback(async (isBackground = false) => {
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ message, type, id: Date.now() });
+  }, []);
+
+  const clearToast = useCallback(() => {
+    setToast(null);
+  }, []);
+
+  // Adiciona um ou mais lançamentos otimistas ao estado e guarda localmente até que apareçam na planilha
+  const adicionarLancamentos = useCallback((novos: Transaction[]) => {
+    if (!novos || novos.length === 0) return;
+
+    const pendingBefore = getPendingLocalLancamentos();
+    const existingIds = new Set(pendingBefore.map(t => t.id));
+    
+    const newPending = [...pendingBefore];
+    for (const t of novos) {
+      if (!existingIds.has(t.id)) {
+        newPending.push(t);
+        existingIds.add(t.id);
+      }
+    }
+    savePendingLocalLancamentos(newPending);
+
+    // Atualiza estado local imediatamente (0ms de atraso nas telas e gráficos)
+    setLancamentos(prev => {
+      const map = new Map<string, Transaction>();
+      // Adiciona novos primeiro
+      for (const t of novos) {
+        map.set(t.id, t);
+      }
+      // Adiciona anteriores se não estiverem no mapa
+      for (const t of prev) {
+        if (!map.has(t.id)) {
+          map.set(t.id, t);
+        }
+      }
+      const combined = Array.from(map.values());
+      // Ordena por data decrescente
+      combined.sort((a, b) => new Date(b.data_hora).getTime() - new Date(a.data_hora).getTime());
+      lancamentosRef.current = combined;
+      saveToCache(combined, Date.now());
+      return combined;
+    });
+
+    setLastUpdated(new Date());
+  }, []);
+
+  const recarregar = useCallback(async (isBackground = false): Promise<{ success: boolean; count: number; error?: string }> => {
     if (fetchPromiseRef.current) {
       return fetchPromiseRef.current;
     }
 
-    if (!isBackground && lancamentosRef.current.length === 0) {
-      setLoading(true);
+    if (!isBackground) {
+      if (lancamentosRef.current.length === 0) {
+        setLoading(true);
+      }
+      setIsRefreshing(true);
     }
     setErro(null);
 
-    const promise = (async () => {
+    const promise = (async (): Promise<{ success: boolean; count: number; error?: string }> => {
       try {
         const csvText = await fetchCsvTextParallel();
         if (!csvText) {
           throw new Error('Não foi possível carregar os dados da planilha.');
         }
 
-        await new Promise<void>((resolve, reject) => {
+        const result = await new Promise<{ success: boolean; count: number; error?: string }>((resolve, reject) => {
           Papa.parse(csvText, {
             header: true,
             skipEmptyLines: true,
             complete: (results: Papa.ParseResult<any>) => {
               try {
                 const headerMap = buildHeaderMap(results.meta.fields || []);
-                const parsedData = processRows(results.data as any[], headerMap);
+                const csvData = processRows(results.data as any[], headerMap);
+
+                // CSV Data Map para rápida verificação de existência
+                const csvIdSet = new Set(csvData.map(t => t.id));
+
+                // Verifica pendências locais e remove as que já foram incorporadas pelo Google Sheets
+                const pendingLocal = getPendingLocalLancamentos();
+                const remainingPending: Transaction[] = [];
+
+                for (const item of pendingLocal) {
+                  if (csvIdSet.has(item.id)) {
+                    // Já apareceu na planilha! Remove da lista pendente local.
+                  } else {
+                    // Ainda não apareceu na planilha; mantém localmente
+                    remainingPending.push(item);
+                  }
+                }
+                savePendingLocalLancamentos(remainingPending);
+
+                // Junta CSV Data com pendências locais ainda não sincronizadas no CSV
+                const mapFinal = new Map<string, Transaction>();
+                for (const item of csvData) {
+                  mapFinal.set(item.id, item);
+                }
+                for (const item of remainingPending) {
+                  if (!mapFinal.has(item.id)) {
+                    mapFinal.set(item.id, item);
+                  }
+                }
+
+                const mergedData = Array.from(mapFinal.values());
+                mergedData.sort((a, b) => new Date(b.data_hora).getTime() - new Date(a.data_hora).getTime());
 
                 const nowTs = Date.now();
                 const now = new Date(nowTs);
 
-                setLancamentos(parsedData);
-                lancamentosRef.current = parsedData;
+                setLancamentos(mergedData);
+                lancamentosRef.current = mergedData;
                 setLastUpdated(now);
                 lastFetchTimeRef.current = nowTs;
 
-                saveToCache(parsedData, nowTs);
-                resolve();
+                saveToCache(mergedData, nowTs);
+
+                resolve({ success: true, count: mergedData.length });
               } catch (e: any) {
                 reject(e);
               }
@@ -234,20 +355,31 @@ export const LancamentosProvider: React.FC<{ children: React.ReactNode }> = ({ c
             }
           });
         });
+
+        if (!isBackground) {
+          showToast('Dados atualizados com sucesso!', 'success');
+        }
+
+        return result;
       } catch (err: any) {
         console.error('Fetch error:', err);
+        const errMsg = 'Erro ao atualizar dados. Exibindo dados em cache.';
         if (lancamentosRef.current.length === 0) {
           setErro('Erro ao carregar dados. Verifique sua conexão.');
+        } else if (!isBackground) {
+          showToast(errMsg, 'error');
         }
+        return { success: false, count: lancamentosRef.current.length, error: err?.message || errMsg };
       } finally {
         setLoading(false);
+        setIsRefreshing(false);
         fetchPromiseRef.current = null;
       }
     })();
 
     fetchPromiseRef.current = promise;
     return promise;
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     const hasCache = lancamentosRef.current.length > 0;
@@ -256,7 +388,7 @@ export const LancamentosProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         const timeSinceLastFetch = Date.now() - lastFetchTimeRef.current;
-        if (timeSinceLastFetch > 60000) {
+        if (timeSinceLastFetch > 30000) {
           recarregar(true);
         }
       }
@@ -269,7 +401,18 @@ export const LancamentosProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [recarregar]);
 
   return (
-    <LancamentosContext.Provider value={{ lancamentos, loading, erro, recarregar, lastUpdated }}>
+    <LancamentosContext.Provider value={{
+      lancamentos,
+      loading,
+      erro,
+      recarregar,
+      lastUpdated,
+      adicionarLancamentos,
+      toast,
+      clearToast,
+      showToast,
+      isRefreshing
+    }}>
       {children}
     </LancamentosContext.Provider>
   );
@@ -282,3 +425,4 @@ export const useLancamentosContext = () => {
   }
   return context;
 };
+
