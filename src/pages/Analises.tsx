@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   subMonths, 
@@ -341,22 +341,24 @@ export default function Analises() {
         fullLabel: format(monthDate, "MMMM 'de' yyyy", { locale: ptBR })
       };
 
-      cartoesList.forEach(cartao => {
+      cartoesList.forEach((cartao, idx) => {
         const totalMes = itemsInMonth
           .filter(t => matchCartao(t.banco || '', cartoesList) === cartao)
           .reduce((acc, t) => acc + (t.valor || 0), 0);
 
-        row[cartao] = totalMes;
+        const dataKey = `c${idx}`;
+        row[dataKey] = totalMes;
         totaisPorCartao[cartao] += totalMes;
       });
 
       return row;
     });
 
-    const cartoesInfo = cartoesList.map(cartao => {
+    const cartoesInfo = cartoesList.map((cartao, idx) => {
       const visual = getCartaoVisual(cartao);
       return {
         key: cartao,
+        dataKey: `c${idx}`,
         name: cartao,
         shortName: visual.shortName,
         color: visual.color,
@@ -370,37 +372,31 @@ export default function Analises() {
     };
   }, [monthsList, currentLancamentos, cartoesList]);
 
-  // Escala e ticks compartilhados do gráfico de cartões (para o eixo Y fixo e grid perfeitamente alinhada)
   const cartoesYAxisInfo = useMemo(() => {
-    let max = 0;
-    cartoesData.chartData.forEach((row) => {
-      cartoesList.forEach((c) => {
-        const val = Number(row[c]) || 0;
-        if (val > max) max = val;
-      });
-    });
+    const isStacked = mesesCount > 6;
+    let maxVal = 0;
 
-    if (max <= 0) {
-      return { max: 1000, ticks: [0, 250, 500, 750, 1000] };
+    if (isStacked) {
+      cartoesData.chartData.forEach(row => {
+        let sum = 0;
+        cartoesData.cartoesInfo.forEach(c => sum += (row[c.dataKey] || 0));
+        if (sum > maxVal) maxVal = sum;
+      });
+    } else {
+      cartoesData.chartData.forEach(row => {
+        cartoesData.cartoesInfo.forEach(c => {
+          if ((row[c.dataKey] || 0) > maxVal) maxVal = row[c.dataKey];
+        });
+      });
     }
 
-    const rawStep = max / 4;
-    const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
-    const normalized = rawStep / magnitude;
-    let niceFactor = 1;
-    if (normalized <= 1) niceFactor = 1;
-    else if (normalized <= 2) niceFactor = 2;
-    else if (normalized <= 2.5) niceFactor = 2.5;
-    else if (normalized <= 5) niceFactor = 5;
-    else niceFactor = 10;
+    const max = Math.ceil(maxVal * 1.1 / 50) * 50 || 100;
+    return { max, ticks: [0, max / 2, max] };
+  }, [cartoesData, mesesCount]);
 
-    const step = niceFactor * magnitude;
-    const niceMax = step * 4;
-    return {
-      max: niceMax,
-      ticks: [0, step, step * 2, step * 3, niceMax]
-    };
-  }, [cartoesData.chartData, cartoesList]);
+  const totalCartoesPeriodo = useMemo(() => 
+    cartoesData.cartoesInfo.reduce((acc, c) => acc + c.totalPeriodo, 0), 
+    [cartoesData]);
 
   // Formatação dos ticks do eixo Y sem repetição
   const formatCartoesYAxis = (val: number) => {
@@ -412,28 +408,6 @@ export default function Analises() {
     return `${val}`;
   };
 
-  // Referência e auto-scroll horizontal até o mês atual (à extrema direita)
-  const cartoesScrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = cartoesScrollRef.current;
-    if (!el) return;
-
-    const scrollToRight = () => {
-      if (el) {
-        el.scrollLeft = el.scrollWidth;
-      }
-    };
-
-    scrollToRight();
-    const t1 = setTimeout(scrollToRight, 60);
-    const t2 = setTimeout(scrollToRight, 250);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [periodo, cartoesData.chartData.length]);
 
   // ==========================================
   // 4. DESTAQUES (Melhor mês, Pior mês, Médias)
@@ -603,7 +577,7 @@ export default function Analises() {
   return (
     <div className="flex flex-col w-full min-h-full pb-32 text-[var(--text-primary)]">
       {/* 1. Seletor de período em pills */}
-      <div className="px-4 pt-3 pb-2 w-full">
+      <div className="sticky top-0 z-30 px-4 pt-3 pb-2 w-full bg-[var(--bg-app)] border-b border-[var(--border)]">
         <div className="w-full bg-[var(--bg-card)] border border-[var(--border)] p-1 rounded-full flex items-center shadow-sm">
           {PERIODOS.map((p) => {
             const isSelected = periodo === p.id;
@@ -1113,18 +1087,23 @@ export default function Analises() {
                 </div>
               </div>
 
-              {/* Gráfico com Eixo Y fixo à esquerda e barras roláveis internamente à direita */}
-              <div className="relative flex w-full h-56">
-                {/* Eixo Y fixo à esquerda (nunca rola) */}
-                <div className="w-[38px] shrink-0 h-full select-none pointer-events-none z-10 bg-[var(--bg-card)] border-r border-[var(--border)]/40">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart 
-                      data={[{ dummy: 0 }]} 
-                      margin={{ top: 8, right: 2, left: 0, bottom: 24 }}
-                    >
+              {totalCartoesPeriodo === 0 ? (
+                <p className="text-center text-xs text-[var(--text-secondary)] py-8">Sem gastos no cartão neste período</p>
+              ) : (
+                <div className="w-full h-56">
+                  <ResponsiveContainer width="100%" height="100%" key={periodo}>
+                    <BarChart data={cartoesData.chartData} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.6} />
+                      <XAxis 
+                        dataKey="label" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        interval={0}
+                        tick={{ fill: 'var(--text-secondary)', fontSize: mesesCount > 6 ? 9 : 10 }} 
+                      />
                       <YAxis 
                         width={36}
-                        domain={[0, cartoesYAxisInfo.max]} 
+                        domain={[0, cartoesYAxisInfo.max]}
                         ticks={cartoesYAxisInfo.ticks}
                         axisLine={false} 
                         tickLine={false} 
@@ -1132,73 +1111,36 @@ export default function Analises() {
                         tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
                         tickFormatter={formatCartoesYAxis}
                       />
-                      <Bar dataKey="dummy" fill="transparent" />
+                      <RechartsTooltip
+                        formatter={(val: any, name: any) => {
+                          const card = cartoesData.cartoesInfo.find(c => c.dataKey === name);
+                          const label = card ? card.shortName : name;
+                          return [formatCurrency(Number(val) || 0), label];
+                        }}
+                        labelFormatter={(_, payload) => payload?.[0]?.payload?.fullLabel || ''}
+                        contentStyle={{
+                          backgroundColor: 'var(--bg-elevated)',
+                          borderColor: 'var(--border)',
+                          borderRadius: '12px',
+                          color: 'var(--text-primary)',
+                          fontSize: '12px'
+                        }}
+                      />
+                      {cartoesData.cartoesInfo.map((card) => (
+                        <Bar 
+                          key={card.key} 
+                          dataKey={card.dataKey} 
+                          fill={card.color} 
+                          radius={[3, 3, 0, 0]} 
+                          maxBarSize={22}
+                          stackId={mesesCount > 6 ? "cartoes" : undefined}
+                          isAnimationActive={false}
+                        />
+                      ))}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-
-                {/* Contêiner de rolagem horizontal interna das barras (mínimo 56px por mês) */}
-                <div 
-                  ref={cartoesScrollRef}
-                  className="flex-1 min-w-0 overflow-x-auto overflow-y-hidden scrollbar-none relative"
-                  style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
-                >
-                  <div 
-                    style={{ 
-                      width: `${Math.max(cartoesData.chartData.length * 56, 1)}px`, 
-                      minWidth: '100%', 
-                      height: '100%' 
-                    }}
-                  >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart 
-                        data={cartoesData.chartData} 
-                        margin={{ top: 8, right: 12, left: 4, bottom: 0 }}
-                        barCategoryGap="20%"
-                        barGap={2}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.6} />
-                        <XAxis 
-                          dataKey="label" 
-                          axisLine={false} 
-                          tickLine={false} 
-                          interval={0}
-                          height={24}
-                          tick={{ fill: 'var(--text-secondary)', fontSize: 10 }} 
-                        />
-                        <YAxis 
-                          hide 
-                          domain={[0, cartoesYAxisInfo.max]} 
-                          ticks={cartoesYAxisInfo.ticks}
-                        />
-                        <RechartsTooltip
-                          formatter={(val: any, name: any) => {
-                            const card = cartoesData.cartoesInfo.find(c => c.key === name);
-                            const label = card ? card.shortName : name;
-                            return [formatCurrency(Number(val) || 0), label];
-                          }}
-                          labelFormatter={(_, payload) => payload?.[0]?.payload?.fullLabel || ''}
-                          contentStyle={{
-                            backgroundColor: 'var(--bg-elevated)',
-                            borderColor: 'var(--border)',
-                            borderRadius: '12px',
-                            color: 'var(--text-primary)',
-                            fontSize: '12px'
-                          }}
-                        />
-                        {cartoesData.cartoesInfo.map((card) => (
-                          <Bar 
-                            key={card.key} 
-                            dataKey={card.key} 
-                            fill={card.color} 
-                            radius={[3, 3, 0, 0]} 
-                          />
-                        ))}
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </div>
+              )}
 
 
               {/* Rodapé com uma linha por cartão em 2 colunas */}

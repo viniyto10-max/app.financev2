@@ -31,6 +31,11 @@ export const isCartao = (valor: string): boolean => {
   if (!valor) return false;
   const valNorm = normalizeStr(valor);
   
+  if ((valNorm.includes('conta') || valNorm.includes('pix') || valNorm.includes('dinheiro')) &&
+      !(valNorm.includes('cartao') || valNorm.includes('credito'))) {
+    return false;
+  }
+
   const cartoesNorm = CARTOES.map(c => normalizeStr(c));
   if (cartoesNorm.some(cn => valNorm.includes(cn) || cn.includes(valNorm))) return true;
   
@@ -51,6 +56,11 @@ export const CARTAO_ESTILO_PADRAO = { from: "#334155", to: "#0F172A", color: "#6
 export const matchCartao = (banco: string, listaCartoes: string[] = CARTOES): string | null => {
   if (!banco) return null;
   const bNorm = normalizeStr(banco);
+
+  if ((bNorm.includes('conta') || bNorm.includes('pix') || bNorm.includes('dinheiro')) &&
+      !(bNorm.includes('cartao') || bNorm.includes('credito'))) {
+    return null;
+  }
 
   // 1. Testa match direto com a lista conhecida
   for (const c of listaCartoes) {
