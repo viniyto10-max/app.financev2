@@ -13,12 +13,13 @@ async function startServer() {
   // Proxy endpoint to fetch Google Sheets CSV server-side avoiding CORS
   app.get('/api/sheet-csv', async (_req, res) => {
     try {
-      const response = await fetch(SHEET_CSV_URL);
+      const response = await fetch(`${SHEET_CSV_URL}&_=${Date.now()}`);
       if (!response.ok) {
         return res.status(response.status).send('Erro ao buscar planilha no Google Sheets');
       }
       const text = await response.text();
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
       res.send(text);
     } catch (err: any) {
       console.error('Error fetching sheet CSV:', err);

@@ -24,7 +24,7 @@ export function gerarParcelas({
       {
         numero: 1,
         valor: valorTotal,
-        data: dataCompra,
+        data: proximaFatura ? addMonths(dataCompra, 1) : dataCompra,
       },
     ];
   }

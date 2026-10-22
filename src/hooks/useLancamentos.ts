@@ -28,8 +28,11 @@ const normalizeTransaction = (row: any, index: number): Transaction => {
     ? rawConfirmado 
     : ['true', 'sim', 'TRUE'].includes(String(rawConfirmado).toLowerCase());
 
+  const idCompra = String(getRowValue(row, ['id_compra', 'ID Compra', 'id'])).trim();
+  const parcelaAtual = String(getRowValue(row, ['parcela_atual', 'Parcela atual', 'parcela'])).trim();
+
   return {
-    id: index.toString(),
+    id: idCompra ? `${idCompra}-${parcelaAtual || 1}` : `row-${index}`,
     data_hora: isNaN(data.getTime()) ? new Date() : data,
     movimento,
     banco: getRowValue(row, ['Banco', 'Forma de pagamento', 'forma de pagamento']),
@@ -67,9 +70,10 @@ export function useLancamentos() {
     if (!isBackground) setLoading(true);
     setErro(null);
     try {
+      const bust = `_=${Date.now()}`;
       let csvText = '';
       try {
-        const proxyRes = await fetch('/api/sheet-csv');
+        const proxyRes = await fetch(`/api/sheet-csv?${bust}`, { cache: 'no-store' });
         if (proxyRes.ok) {
           csvText = await proxyRes.text();
         }
@@ -77,7 +81,7 @@ export function useLancamentos() {
 
       if (!csvText) {
         try {
-          const directRes = await fetch(SHEET_CSV_URL);
+          const directRes = await fetch(`${SHEET_CSV_URL}&${bust}`, { cache: 'no-store' });
           if (directRes.ok) {
             csvText = await directRes.text();
           }
@@ -93,9 +97,12 @@ export function useLancamentos() {
         header: true,
         skipEmptyLines: true,
         complete: (results: Papa.ParseResult<any>) => {
-          const parsedData: Transaction[] = (results.data as any[])
+          const parsed: Transaction[] = (results.data as any[])
             .filter(row => getRowValue(row, ['Carimbo data/hora', 'Data', 'Data e Hora']))
             .map(normalizeTransaction);
+          
+          // remove duplicatas pelo id (a última ocorrência vence)
+          const parsedData = Array.from(new Map(parsed.map(t => [t.id, t])).values());
           
           if (JSON.stringify(parsedData) !== JSON.stringify(lancamentos)) {
             setLancamentos(parsedData);

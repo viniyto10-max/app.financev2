@@ -66,6 +66,17 @@ export default function FormLancamento({ onOpenIntegracoes }: { onOpenIntegracoe
     }
   }
 
+  let previewDataUnica = '';
+  if (isCartaoSelected && !isParcelado && proximaFatura && numValor > 0) {
+    const [p] = gerarParcelas({
+      valorTotal: numValor,
+      parcelas: 1,
+      dataCompra: new Date(dataHora),
+      proximaFatura,
+    });
+    previewDataUnica = `Será lançado em ${format(p.data, 'dd/MM/yyyy')} (próxima fatura)`;
+  }
+
   const handleTipoChange = (novoTipo: 'Entrada' | 'Saída') => {
     setTipo(novoTipo);
     if (novoTipo === 'Entrada') {
@@ -242,6 +253,11 @@ export default function FormLancamento({ onOpenIntegracoes }: { onOpenIntegracoe
           {isParcelado && previewParcelas && (
             <div className="text-[12px] text-[var(--text-secondary)] mt-1.5 leading-tight">
               {previewParcelas}
+            </div>
+          )}
+          {previewDataUnica && (
+            <div className="text-[12px] text-[var(--text-secondary)] mt-1.5 leading-tight">
+              {previewDataUnica}
             </div>
           )}
         </div>

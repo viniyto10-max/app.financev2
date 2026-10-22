@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   subMonths, 
@@ -369,6 +369,71 @@ export default function Analises() {
       cartoesInfo
     };
   }, [monthsList, currentLancamentos, cartoesList]);
+
+  // Escala e ticks compartilhados do gráfico de cartões (para o eixo Y fixo e grid perfeitamente alinhada)
+  const cartoesYAxisInfo = useMemo(() => {
+    let max = 0;
+    cartoesData.chartData.forEach((row) => {
+      cartoesList.forEach((c) => {
+        const val = Number(row[c]) || 0;
+        if (val > max) max = val;
+      });
+    });
+
+    if (max <= 0) {
+      return { max: 1000, ticks: [0, 250, 500, 750, 1000] };
+    }
+
+    const rawStep = max / 4;
+    const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    const normalized = rawStep / magnitude;
+    let niceFactor = 1;
+    if (normalized <= 1) niceFactor = 1;
+    else if (normalized <= 2) niceFactor = 2;
+    else if (normalized <= 2.5) niceFactor = 2.5;
+    else if (normalized <= 5) niceFactor = 5;
+    else niceFactor = 10;
+
+    const step = niceFactor * magnitude;
+    const niceMax = step * 4;
+    return {
+      max: niceMax,
+      ticks: [0, step, step * 2, step * 3, niceMax]
+    };
+  }, [cartoesData.chartData, cartoesList]);
+
+  // Formatação dos ticks do eixo Y sem repetição
+  const formatCartoesYAxis = (val: number) => {
+    if (val === 0) return '0';
+    if (val >= 1000) {
+      const kVal = val / 1000;
+      return Number.isInteger(kVal) ? `${kVal}k` : `${kVal.toFixed(1)}k`;
+    }
+    return `${val}`;
+  };
+
+  // Referência e auto-scroll horizontal até o mês atual (à extrema direita)
+  const cartoesScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = cartoesScrollRef.current;
+    if (!el) return;
+
+    const scrollToRight = () => {
+      if (el) {
+        el.scrollLeft = el.scrollWidth;
+      }
+    };
+
+    scrollToRight();
+    const t1 = setTimeout(scrollToRight, 60);
+    const t2 = setTimeout(scrollToRight, 250);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [periodo, cartoesData.chartData.length]);
 
   // ==========================================
   // 4. DESTAQUES (Melhor mês, Pior mês, Médias)
@@ -1048,58 +1113,93 @@ export default function Analises() {
                 </div>
               </div>
 
-              <div className="w-full h-56">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={cartoesData.chartData} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.6} />
-                    <XAxis 
-                      dataKey="label" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      interval={0}
-                      tick={{ fill: 'var(--text-secondary)', fontSize: 10 }} 
-                    />
-                    <YAxis 
-                      axisLine={false} 
-                      tickLine={false} 
-                      allowDecimals={false}
-                      tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
-                      tickFormatter={(val) => {
-                        if (val === 0) return '0';
-                        if (val >= 1000) {
-                          const kVal = val / 1000;
-                          return Number.isInteger(kVal) ? `${kVal}k` : `${kVal.toFixed(1)}k`;
-                        }
-                        return `${val}`;
-                      }}
-                    />
-                    <RechartsTooltip
-                      formatter={(val: any, name: any) => {
-                        const card = cartoesData.cartoesInfo.find(c => c.key === name);
-                        const label = card ? card.shortName : name;
-                        return [formatCurrency(Number(val) || 0), label];
-                      }}
-                      labelFormatter={(_, payload) => payload?.[0]?.payload?.fullLabel || ''}
-                      contentStyle={{
-                        backgroundColor: 'var(--bg-elevated)',
-                        borderColor: 'var(--border)',
-                        borderRadius: '12px',
-                        color: 'var(--text-primary)',
-                        fontSize: '12px'
-                      }}
-                    />
-                    {cartoesData.cartoesInfo.map((card) => (
-                      <Bar 
-                        key={card.key} 
-                        dataKey={card.key} 
-                        fill={card.color} 
-                        radius={[3, 3, 0, 0]} 
-                        maxBarSize={10} 
+              {/* Gráfico com Eixo Y fixo à esquerda e barras roláveis internamente à direita */}
+              <div className="relative flex w-full h-56">
+                {/* Eixo Y fixo à esquerda (nunca rola) */}
+                <div className="w-[38px] shrink-0 h-full select-none pointer-events-none z-10 bg-[var(--bg-card)] border-r border-[var(--border)]/40">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart 
+                      data={[{ dummy: 0 }]} 
+                      margin={{ top: 8, right: 2, left: 0, bottom: 24 }}
+                    >
+                      <YAxis 
+                        width={36}
+                        domain={[0, cartoesYAxisInfo.max]} 
+                        ticks={cartoesYAxisInfo.ticks}
+                        axisLine={false} 
+                        tickLine={false} 
+                        allowDecimals={false}
+                        tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
+                        tickFormatter={formatCartoesYAxis}
                       />
-                    ))}
-                  </BarChart>
-                </ResponsiveContainer>
+                      <Bar dataKey="dummy" fill="transparent" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Contêiner de rolagem horizontal interna das barras (mínimo 56px por mês) */}
+                <div 
+                  ref={cartoesScrollRef}
+                  className="flex-1 min-w-0 overflow-x-auto overflow-y-hidden scrollbar-none relative"
+                  style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+                >
+                  <div 
+                    style={{ 
+                      width: `${Math.max(cartoesData.chartData.length * 56, 1)}px`, 
+                      minWidth: '100%', 
+                      height: '100%' 
+                    }}
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart 
+                        data={cartoesData.chartData} 
+                        margin={{ top: 8, right: 12, left: 4, bottom: 0 }}
+                        barCategoryGap="20%"
+                        barGap={2}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.6} />
+                        <XAxis 
+                          dataKey="label" 
+                          axisLine={false} 
+                          tickLine={false} 
+                          interval={0}
+                          height={24}
+                          tick={{ fill: 'var(--text-secondary)', fontSize: 10 }} 
+                        />
+                        <YAxis 
+                          hide 
+                          domain={[0, cartoesYAxisInfo.max]} 
+                          ticks={cartoesYAxisInfo.ticks}
+                        />
+                        <RechartsTooltip
+                          formatter={(val: any, name: any) => {
+                            const card = cartoesData.cartoesInfo.find(c => c.key === name);
+                            const label = card ? card.shortName : name;
+                            return [formatCurrency(Number(val) || 0), label];
+                          }}
+                          labelFormatter={(_, payload) => payload?.[0]?.payload?.fullLabel || ''}
+                          contentStyle={{
+                            backgroundColor: 'var(--bg-elevated)',
+                            borderColor: 'var(--border)',
+                            borderRadius: '12px',
+                            color: 'var(--text-primary)',
+                            fontSize: '12px'
+                          }}
+                        />
+                        {cartoesData.cartoesInfo.map((card) => (
+                          <Bar 
+                            key={card.key} 
+                            dataKey={card.key} 
+                            fill={card.color} 
+                            radius={[3, 3, 0, 0]} 
+                          />
+                        ))}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
               </div>
+
 
               {/* Rodapé com uma linha por cartão em 2 colunas */}
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-3 border-t border-[var(--border)]">
