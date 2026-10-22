@@ -183,7 +183,7 @@ export default function Categorias() {
   ];
 
   return (
-    <div className="flex flex-col w-full min-h-full pb-32 text-[var(--text-primary)]">
+    <div className="flex flex-col w-full min-h-full text-[var(--text-primary)]" style={{ paddingBottom: 'calc(8.5rem + env(safe-area-inset-bottom))' }}>
       {/* 1. Seletor de Meses da Visão Geral (adaptado ao fundo da página) */}
       <div className="px-4 pt-3 pb-2 w-full">
         <MonthChips variant="surface" />

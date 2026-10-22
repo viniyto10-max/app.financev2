@@ -575,9 +575,9 @@ export default function Analises() {
   }, [diffSaidas, resumoAtual, maioresGastos, projecaoMes]);
 
   return (
-    <div className="flex flex-col w-full min-h-full pb-32 text-[var(--text-primary)]">
+    <div className="flex flex-col w-full min-h-full text-[var(--text-primary)]" style={{ paddingBottom: 'calc(8.5rem + env(safe-area-inset-bottom))' }}>
       {/* 1. Seletor de período em pills */}
-      <div className="sticky top-0 z-30 px-4 pt-3 pb-2 w-full bg-[var(--bg-app)] border-b border-[var(--border)]">
+      <div className="sticky top-0 z-30 px-4 pt-3 pb-2 w-full bg-[var(--bg-app)] border-b border-[var(--border)] shadow-sm">
         <div className="w-full bg-[var(--bg-card)] border border-[var(--border)] p-1 rounded-full flex items-center shadow-sm">
           {PERIODOS.map((p) => {
             const isSelected = periodo === p.id;

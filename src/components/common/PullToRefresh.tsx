@@ -150,7 +150,7 @@ export default function PullToRefresh({ children, containerRef }: PullToRefreshP
   const progress = Math.min(1, pullDistance / PULL_THRESHOLD);
 
   return (
-    <div className="relative w-full h-full min-h-0 flex-1 flex flex-col">
+    <div className="relative w-full min-h-full flex flex-col">
       {/* Pull to refresh top indicator bar */}
       {showPullIndicator && (
         <div
@@ -187,7 +187,7 @@ export default function PullToRefresh({ children, containerRef }: PullToRefreshP
       )}
 
       {/* Main children content */}
-      <div className="w-full flex-1 min-h-0 flex flex-col">
+      <div className="w-full flex-1 flex flex-col">
         {children}
       </div>
     </div>

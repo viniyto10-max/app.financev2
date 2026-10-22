@@ -213,7 +213,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col bg-[var(--bg-app)] text-[var(--text-primary)] pb-32 w-full">
+    <div className="flex flex-col bg-[var(--bg-app)] text-[var(--text-primary)] w-full min-h-full" style={{ paddingBottom: 'calc(8.5rem + env(safe-area-inset-bottom))' }}>
       {/* Banner discreto de erro caso haja erro mas já tenhamos dados em cache */}
       {erro && (
         <div className="bg-red-500/10 border-b border-red-500/20 text-[var(--danger)] px-4 py-2 text-xs flex items-center justify-center gap-2">

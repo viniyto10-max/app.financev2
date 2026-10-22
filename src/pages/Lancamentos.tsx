@@ -139,9 +139,9 @@ export default function Lancamentos() {
   const activeFiltersCount = selectedBancos.length + selectedCategorias.length + selectedResponsaveis.length;
 
   return (
-    <div className="flex flex-col space-y-4 pb-20">
+    <div className="flex flex-col space-y-4 min-h-full" style={{ paddingBottom: 'calc(8.5rem + env(safe-area-inset-bottom))' }}>
       {/* Sticky Filter & Search Bar */}
-      <div className="sticky top-0 z-30 bg-[var(--bg-app)] border-b border-[var(--border)] px-4 py-2.5 space-y-2.5">
+      <div className="sticky top-0 z-30 bg-[var(--bg-app)] border-b border-[var(--border)] px-4 py-2.5 space-y-2.5 shadow-sm">
         {/* Busca */}
         <div className="relative">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
@@ -196,7 +196,7 @@ export default function Lancamentos() {
         </div>
       </div>
 
-      <div className="p-4 space-y-4 pb-32">
+      <div className="p-4 space-y-4">
         {/* Resumo do filtro */}
         <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 shadow-[var(--shadow)] grid grid-cols-3 gap-2 text-center">
           <div>

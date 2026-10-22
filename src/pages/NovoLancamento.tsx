@@ -7,7 +7,7 @@ export default function NovoLancamento() {
   const webhookUrl = localStorage.getItem('webhook_url');
 
   return (
-    <div className="flex flex-col space-y-4 pb-20 p-4">
+    <div className="flex flex-col space-y-4 p-4 min-h-full" style={{ paddingBottom: 'calc(8.5rem + env(safe-area-inset-bottom))' }}>
       <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl shadow-[var(--shadow)] p-4">
         <FormLancamento onOpenIntegracoes={() => setIsIntegracoesOpen(true)} />
       </div>
