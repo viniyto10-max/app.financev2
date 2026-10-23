@@ -2,15 +2,48 @@ import { useState, useMemo, useEffect } from 'react';
 import ThemeToggle from '../components/common/ThemeToggle';
 import { useLancamentos } from '../hooks/useLancamentos';
 import { Transaction } from '../types';
-import { formatCurrency } from '../lib/utils';
+import { formatCurrency, getDataExibicao } from '../lib/utils';
+import { isCartao } from '../lib/constants';
 import { 
   Search, X, Filter, ChevronRight, Calendar, ArrowUpCircle, ArrowDownCircle, 
   ShoppingBag, Wifi, Coffee, Heart, BookOpen, Shirt, Tv, Zap, Droplet, Fuel, DollarSign, Briefcase, RefreshCw, ReceiptText, Dumbbell 
 } from 'lucide-react';
 import { ScreenHeader } from '../components/common/ScreenHeader';
-import { format, isToday, isYesterday, parseISO, isValid } from 'date-fns';
+import { format, isToday, isYesterday, parseISO, isValid, addMonths, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useSearchParams } from 'react-router-dom';
+
+const AGREGAR_REGEX = /\s*\(\d+\/\d+\)\s*$/;
+
+const agruparCompras = (lista: Transaction[]) => {
+  const grupos = new Map<string, { key: string; itens: Transaction[]; principal: Transaction }>();
+
+  lista.forEach(t => {
+    const key = t.id_compra || `row-${t.id}`;
+    if (!grupos.has(key)) {
+      grupos.set(key, { key, itens: [], principal: t });
+    }
+    const grupo = grupos.get(key)!;
+    grupo.itens.push(t);
+    // Prioriza o item que for parcela 1 para ser o principal
+    if (t.parcela_atual === 1 || !grupo.principal.parcela_atual) {
+      grupo.principal = t;
+    }
+  });
+
+  return Array.from(grupos.values()).map(g => {
+    g.itens.sort((a, b) => (a.parcela_atual || 1) - (b.parcela_atual || 1));
+    const totalParcelas = Math.max(g.principal.total_parcelas || 1, g.itens.length);
+    return {
+      ...g,
+      dataExibicao: getDataExibicao(g.principal),
+      valorTotal: g.itens.reduce((sum, t) => sum + t.valor, 0),
+      totalParcelas,
+      parcelado: totalParcelas > 1,
+      descricaoLimpa: g.principal.descricao.replace(AGREGAR_REGEX, '')
+    };
+  });
+};
 
 const getCategoryInfo = (categoria: string) => {
   const map: Record<string, { icon: any, color: string }> = {
@@ -92,8 +125,8 @@ export default function Lancamentos() {
 
     // Ordenação
     result.sort((a, b) => {
-      const timeA = new Date(a.data_hora).getTime();
-      const timeB = new Date(b.data_hora).getTime();
+      const timeA = getDataExibicao(a).getTime();
+      const timeB = getDataExibicao(b).getTime();
       if (ordem === 'recentes') return timeB - timeA;
       if (ordem === 'antigos') return timeA - timeB;
       if (ordem === 'maior_valor') return b.valor - a.valor;
@@ -104,29 +137,31 @@ export default function Lancamentos() {
     return result;
   }, [lancamentos, busca, tipoFiltro, statusFiltro, selectedBancos, selectedCategorias, selectedResponsaveis, ordem]);
 
+  const agrupado = useMemo(() => agruparCompras(filteredLancamentos), [filteredLancamentos]);
+
   // Totais do resumo do filtro
   const resumo = useMemo(() => {
-    const totalEntradas = filteredLancamentos.filter(t => t.movimento === 'Entrada').reduce((acc, t) => acc + t.valor, 0);
-    const totalSaidas = filteredLancamentos.filter(t => t.movimento === 'Saída').reduce((acc, t) => acc + t.valor, 0);
+    const totalEntradas = agrupado.filter(g => g.principal.movimento === 'Entrada').reduce((acc, g) => acc + g.valorTotal, 0);
+    const totalSaidas = agrupado.filter(g => g.principal.movimento === 'Saída').reduce((acc, g) => acc + g.valorTotal, 0);
     return {
-      count: filteredLancamentos.length,
+      count: agrupado.length,
       entradas: totalEntradas,
       saidas: totalSaidas,
       saldo: totalEntradas - totalSaidas
     };
-  }, [filteredLancamentos]);
+  }, [agrupado]);
 
   // Agrupamento por dia
   const groupedByDay = useMemo(() => {
-    const groups: Record<string, Transaction[]> = {};
-    filteredLancamentos.slice(0, visibleCount).forEach(t => {
-      const d = new Date(t.data_hora);
+    const groups: Record<string, typeof agrupado> = {};
+    agrupado.slice(0, visibleCount).forEach(g => {
+      const d = g.dataExibicao;
       const key = isValid(d) ? format(d, 'yyyy-MM-dd') : 'Outros';
       if (!groups[key]) groups[key] = [];
-      groups[key].push(t);
+      groups[key].push(g);
     });
     return groups;
-  }, [filteredLancamentos, visibleCount]);
+  }, [agrupado, visibleCount]);
 
   const formatDayHeader = (dateStr: string) => {
     if (dateStr === 'Outros') return 'Outros';
@@ -244,8 +279,8 @@ export default function Lancamentos() {
           </div>
         ) : (
           <div className="space-y-6">
-            {Object.entries(groupedByDay).map(([dateStr, items]) => {
-              const dayTotal = items.reduce((sum, t) => sum + (t.movimento === 'Entrada' ? t.valor : -t.valor), 0);
+            {Object.entries(groupedByDay).map(([dateStr, grupos]) => {
+              const dayTotal = grupos.reduce((sum, g) => sum + (g.principal.movimento === 'Entrada' ? g.valorTotal : -g.valorTotal), 0);
               return (
                 <div key={dateStr} className="space-y-2">
                   <div className="flex justify-between items-center text-xs font-medium text-[var(--text-secondary)] px-1">
@@ -256,12 +291,13 @@ export default function Lancamentos() {
                   </div>
 
                   <div className="space-y-2">
-                    {items.map(t => {
+                    {grupos.map(g => {
+                      const t = g.principal;
                       const { icon: Icon, color } = getCategoryInfo(t.categoria);
                       const isEntrada = t.movimento === 'Entrada';
                       return (
                         <div 
-                          key={t.id} 
+                          key={g.key} 
                           onClick={() => setSelectedTransaction(t)}
                           className="flex items-center gap-3 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-3 min-h-[64px] shadow-[var(--shadow)] cursor-pointer hover:opacity-90 transition-opacity"
                         >
@@ -271,7 +307,10 @@ export default function Lancamentos() {
 
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-sm truncate flex items-center gap-2">
-                              <span className="truncate">{t.descricao || t.categoria}</span>
+                              <span className="truncate">{g.descricaoLimpa || t.categoria}</span>
+                              {g.parcelado && (
+                                <span className="text-[10px] bg-[var(--primary-soft)] text-[var(--primary)] px-1.5 py-0.5 rounded shrink-0">{g.totalParcelas}x</span>
+                              )}
                               {!t.confirmado && (
                                 <span className="text-[10px] bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 px-1.5 py-0.5 rounded shrink-0">Pendente</span>
                               )}
@@ -283,10 +322,10 @@ export default function Lancamentos() {
 
                           <div className="text-right shrink-0">
                             <div className={`text-sm font-bold ${isEntrada ? 'text-[var(--primary)]' : 'text-[var(--danger)]'}`}>
-                              {isEntrada ? '+' : '-'}{formatCurrency(t.valor)}
+                              {isEntrada ? '+' : '-'}{formatCurrency(g.valorTotal)}
                             </div>
                             <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">
-                              {isValid(new Date(t.data_hora)) ? format(new Date(t.data_hora), 'HH:mm') : ''}
+                              {isValid(g.dataExibicao) ? format(g.dataExibicao, 'HH:mm') : ''}
                             </div>
                           </div>
                         </div>
@@ -297,7 +336,7 @@ export default function Lancamentos() {
               );
             })}
 
-            {visibleCount < filteredLancamentos.length && (
+            {visibleCount < agrupado.length && (
               <button 
                 onClick={() => setVisibleCount(prev => prev + 30)}
                 className="w-full py-3 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl text-sm font-bold text-[var(--text-primary)]"
@@ -421,7 +460,7 @@ export default function Lancamentos() {
       {/* Bottom Sheet de Detalhes */}
       {selectedTransaction && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
-          <div className="bg-[var(--bg-card)] border-t border-[var(--border)] w-full sm:max-w-[440px] rounded-t-[20px] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-4 animate-in slide-in-from-bottom duration-200">
+          <div className="bg-[var(--bg-card)] border-t border-[var(--border)] w-full sm:max-w-[440px] rounded-t-[20px] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-4 animate-in slide-in-from-bottom duration-200 max-h-[85dvh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-[var(--border)] pb-3">
               <h3 className="font-bold text-base">Detalhes do Lançamento</h3>
               <button onClick={() => setSelectedTransaction(null)} className="text-[var(--text-secondary)]"><X size={20}/></button>
@@ -433,12 +472,12 @@ export default function Lancamentos() {
                 <span className={`font-bold ${selectedTransaction.movimento === 'Entrada' ? 'text-[var(--primary)]' : 'text-[var(--danger)]'}`}>{selectedTransaction.movimento}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-[var(--border)]">
-                <span className="text-[var(--text-secondary)]">Valor</span>
-                <span className="font-bold">{formatCurrency(selectedTransaction.valor)}</span>
+                <span className="text-[var(--text-secondary)]">Valor total</span>
+                <span className="font-bold">{formatCurrency(agrupado.find(g => g.key === (selectedTransaction.id_compra || `row-${selectedTransaction.id}`))?.valorTotal || selectedTransaction.valor)}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-[var(--border)]">
-                <span className="text-[var(--text-secondary)]">Data e Hora</span>
-                <span>{isValid(new Date(selectedTransaction.data_hora)) ? format(new Date(selectedTransaction.data_hora), 'dd/MM/yyyy HH:mm') : ''}</span>
+                <span className="text-[var(--text-secondary)]">Data da compra</span>
+                <span>{isValid(getDataExibicao(selectedTransaction)) ? format(getDataExibicao(selectedTransaction), 'dd/MM/yyyy HH:mm') : ''}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-[var(--border)]">
                 <span className="text-[var(--text-secondary)]">Forma de pagamento</span>
@@ -452,16 +491,40 @@ export default function Lancamentos() {
                 <span className="text-[var(--text-secondary)]">Responsável</span>
                 <span>{selectedTransaction.responsavel}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-[var(--border)]">
-                <span className="text-[var(--text-secondary)]">Status</span>
-                <span>{selectedTransaction.confirmado ? 'Confirmado' : 'Pendente'}</span>
+              
+              {selectedTransaction.id_compra && (() => {
+                const grupo = agrupado.find(g => g.key === selectedTransaction.id_compra);
+                if (!grupo) return null;
+                const parcelado = grupo.parcelado;
+                return (
+                  <>
+                    {parcelado && (
+                      <div className="py-2 border-b border-[var(--border)]">
+                        <span className="text-[var(--text-secondary)] font-bold block mb-2">Parcelas</span>
+                        <div className="space-y-1">
+                          {grupo.itens.map(p => (
+                            <div key={p.id} className="flex justify-between text-xs">
+                              <span>{p.parcela_atual}/{grupo.totalParcelas} · Fatura {format(p.data_hora, "MMM/yy", { locale: ptBR }).toLowerCase()}</span>
+                              <span className="font-medium">{formatCurrency(p.valor)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {isCartao(selectedTransaction.banco) && selectedTransaction.movimento === 'Saída' && (
+                      <div className="text-xs text-[var(--text-secondary)]">
+                        <div>Fechamento da fatura: todo dia 1</div>
+                        {!parcelado && <div>Fatura: {format(selectedTransaction.data_hora, "MMM/yy", { locale: ptBR }).toLowerCase()}</div>}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+
+              <div className="py-1">
+                <span className="text-[var(--text-secondary)] block mb-1">Descrição</span>
+                <p className="p-3 bg-[var(--bg-input)] rounded-xl text-xs">{selectedTransaction.descricao.replace(AGREGAR_REGEX, '')}</p>
               </div>
-              {selectedTransaction.descricao && (
-                <div className="py-1">
-                  <span className="text-[var(--text-secondary)] block mb-1">Descrição</span>
-                  <p className="p-3 bg-[var(--bg-input)] rounded-xl text-xs">{selectedTransaction.descricao}</p>
-                </div>
-              )}
             </div>
 
             <button 

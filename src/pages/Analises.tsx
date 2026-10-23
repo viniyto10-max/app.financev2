@@ -7,7 +7,8 @@ import {
   isWithinInterval, 
   format,
   getDate,
-  getDaysInMonth
+  getDaysInMonth,
+  isValid
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
@@ -39,7 +40,8 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useLancamentos } from '../hooks/useLancamentos';
-import { formatCurrency } from '../lib/utils';
+import { useChartAnimation } from '../hooks/useChartAnimation';
+import { formatCurrency, getDataExibicao } from '../lib/utils';
 import ResponsavelAvatar from '../components/common/ResponsavelAvatar';
 import { FOTOS_RESPONSAVEIS, CARTOES, isCartao, matchCartao, getCartaoVisual } from '../lib/constants';
 
@@ -63,6 +65,7 @@ export default function Analises() {
 
   // 1. Seletor de período em pills ("6 meses" é o padrão)
   const [periodo, setPeriodo] = useState<PeriodoTipo>('6_meses');
+  const shouldAnimate = useChartAnimation(periodo);
 
   // Mês atual como referência base
   const now = useMemo(() => new Date(), []);
@@ -103,15 +106,15 @@ export default function Analises() {
   // Filtrar lançamentos dos períodos atual e anterior
   const currentLancamentos = useMemo(() => {
     return lancamentos.filter((t) => {
-      const d = new Date(t.data_hora);
-      return !isNaN(d.getTime()) && isWithinInterval(d, currentInterval);
+      const d = getDataExibicao(t);
+      return isValid(d) && isWithinInterval(d, currentInterval);
     });
   }, [lancamentos, currentInterval]);
 
   const prevLancamentos = useMemo(() => {
     return lancamentos.filter((t) => {
-      const d = new Date(t.data_hora);
-      return !isNaN(d.getTime()) && isWithinInterval(d, prevInterval);
+      const d = getDataExibicao(t);
+      return isValid(d) && isWithinInterval(d, prevInterval);
     });
   }, [lancamentos, prevInterval]);
 
@@ -182,7 +185,7 @@ export default function Analises() {
       const monthEnd = endOfMonth(monthDate);
 
       const itemsInMonth = currentLancamentos.filter((t) => {
-        const d = new Date(t.data_hora);
+        const d = getDataExibicao(t);
         return isWithinInterval(d, { start: monthStart, end: monthEnd });
       });
 
@@ -278,7 +281,7 @@ export default function Analises() {
       const monthEnd = endOfMonth(monthDate);
 
       const itemsInMonth = currentLancamentos.filter((t) => {
-        const d = new Date(t.data_hora);
+        const d = getDataExibicao(t);
         return (
           t.movimento === 'Saída' &&
           (t.categoria || '').trim().toLowerCase() === activeCategoria.trim().toLowerCase() &&
@@ -332,7 +335,7 @@ export default function Analises() {
       const monthEnd = endOfMonth(monthDate);
 
       const itemsInMonth = currentLancamentos.filter((t) => {
-        const d = new Date(t.data_hora);
+        const d = getDataExibicao(t);
         return t.movimento === 'Saída' && isWithinInterval(d, { start: monthStart, end: monthEnd });
       });
 
@@ -452,12 +455,12 @@ export default function Analises() {
     const currentMonthEnd = endOfMonth(now);
 
     const itemsCurrentMonth = lancamentos.filter(t => {
-      const d = new Date(t.data_hora);
+      const d = getDataExibicao(t);
       return t.movimento === 'Saída' && isWithinInterval(d, { start: currentMonthStart, end: currentMonthEnd });
     });
 
     // Dias com lançamentos distintos no mês atual
-    const distinctDays = new Set(itemsCurrentMonth.map(t => getDate(new Date(t.data_hora))));
+    const distinctDays = new Set(itemsCurrentMonth.map(t => getDate(getDataExibicao(t))));
     if (distinctDays.size < 5) return null; // Regra: mínimo de 5 dias
 
     const totalSaidasAteHoje = itemsCurrentMonth.reduce((acc, t) => acc + (t.valor || 0), 0);
@@ -500,7 +503,7 @@ export default function Analises() {
       const mEnd = endOfMonth(mDate);
 
       const itemsInMonth = lancamentos.filter(t => {
-        const d = new Date(t.data_hora);
+        const d = getDataExibicao(t);
         return t.movimento === 'Saída' && isWithinInterval(d, { start: mDate, end: mEnd });
       });
 
@@ -577,7 +580,7 @@ export default function Analises() {
   return (
     <div className="flex flex-col w-full min-h-full text-[var(--text-primary)]" style={{ paddingBottom: 'calc(8.5rem + env(safe-area-inset-bottom))' }}>
       {/* 1. Seletor de período em pills */}
-      <div className="sticky top-0 z-30 px-4 pt-3 pb-2 w-full bg-[var(--bg-app)] border-b border-[var(--border)] shadow-sm">
+      <div className="sticky top-0 z-30 px-4 pt-3 pb-2 w-full bg-[var(--bg-app)] border-b border-[var(--border)] shadow-sm fade-up" style={{ '--i': 1 } as React.CSSProperties}>
         <div className="w-full bg-[var(--bg-card)] border border-[var(--border)] p-1 rounded-full flex items-center shadow-sm">
           {PERIODOS.map((p) => {
             const isSelected = periodo === p.id;
@@ -640,7 +643,7 @@ export default function Analises() {
           <>
             {/* 8. INSIGHTS EM TEXTO */}
             {insights.length > 0 && (
-              <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 shadow-sm space-y-2.5">
+              <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 shadow-sm space-y-2.5 fade-up" style={{ '--i': Math.min(2, 8) } as React.CSSProperties}>
                 <div className="flex items-center gap-2 text-xs font-bold text-[var(--primary)]">
                   <Sparkles size={16} />
                   <span>Insights do Período</span>
@@ -657,7 +660,7 @@ export default function Analises() {
             )}
 
             {/* 2. Cards de resumo do período (2x2) */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 fade-up" style={{ '--i': Math.min(3, 8) } as React.CSSProperties}>
               {/* Total de Entradas */}
               <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-3.5 shadow-[var(--shadow)] flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-1.5">
@@ -756,7 +759,7 @@ export default function Analises() {
             </div>
 
             {/* 3. Gráfico de Barras "Entradas x Saídas" */}
-            <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 shadow-[var(--shadow)] space-y-3">
+            <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 shadow-[var(--shadow)] space-y-3 fade-up" style={{ '--i': Math.min(4, 8) } as React.CSSProperties}>
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-sm text-[var(--text-primary)]">Entradas x Saídas</h3>
@@ -807,15 +810,15 @@ export default function Analises() {
                         fontSize: '12px'
                       }}
                     />
-                    <Bar dataKey="entradas" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={20} isAnimationActive={false} />
-                    <Bar dataKey="saidas" fill="#EF4444" radius={[4, 4, 0, 0]} maxBarSize={20} isAnimationActive={false} />
+                    <Bar dataKey="entradas" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={20} isAnimationActive={shouldAnimate} animationDuration={450} animationEasing="ease-out" animationBegin={0} />
+                    <Bar dataKey="saidas" fill="#EF4444" radius={[4, 4, 0, 0]} maxBarSize={20} isAnimationActive={shouldAnimate} animationDuration={450} animationEasing="ease-out" animationBegin={0} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
             {/* 4. Gráfico de Linha "Evolução do Saldo" */}
-            <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 shadow-[var(--shadow)] space-y-3">
+            <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 shadow-[var(--shadow)] space-y-3 fade-up" style={{ '--i': Math.min(5, 8) } as React.CSSProperties}>
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-sm text-[var(--text-primary)]">Evolução do Saldo</h3>
@@ -867,14 +870,20 @@ export default function Analises() {
                       dataKey="saldoAcumulado" 
                       fill="url(#saldoGradient)" 
                       stroke="none" 
-                      isAnimationActive={false}
+                      isAnimationActive={shouldAnimate}
+                      animationDuration={450}
+                      animationEasing="ease-out"
+                      animationBegin={0}
                     />
                     <Line 
                       type="monotone" 
                       dataKey="saldoAcumulado" 
                       stroke="#10B981" 
                       strokeWidth={2.5}
-                      isAnimationActive={false}
+                      isAnimationActive={shouldAnimate}
+                      animationDuration={450}
+                      animationEasing="ease-out"
+                      animationBegin={0}
                       dot={(props: any) => {
                         const { cx, cy, payload } = props;
                         if (payload.isCurrentMonth) {
@@ -990,13 +999,13 @@ export default function Analises() {
                     </div>
                     <div className="w-full h-2.5 bg-[var(--border)] rounded-full overflow-hidden flex">
                       <div 
-                        className="h-full bg-emerald-500 transition-all duration-300" 
-                        style={{ width: `${responsaveisComparativo.ahysllaPct}%` }}
+                        className="h-full bg-emerald-500 transition-transform duration-500 ease-out" 
+                        style={{ transform: `scaleX(${Math.min(1, responsaveisComparativo.ahysllaPct / 100)})`, transformOrigin: 'left' }}
                         title={`Ahyslla: ${responsaveisComparativo.ahysllaPct.toFixed(1)}%`}
                       />
                       <div 
-                        className="h-full bg-blue-500 transition-all duration-300" 
-                        style={{ width: `${responsaveisComparativo.marcosPct}%` }}
+                        className="h-full bg-blue-500 transition-transform duration-500 ease-out" 
+                        style={{ transform: `scaleX(${Math.min(1, responsaveisComparativo.marcosPct / 100)})`, transformOrigin: 'left' }}
                         title={`Marcos: ${responsaveisComparativo.marcosPct.toFixed(1)}%`}
                       />
                     </div>

@@ -12,6 +12,7 @@ import { useLancamentos } from '../hooks/useLancamentos';
 import { formatCurrency } from '../lib/utils';
 import ResponsavelAvatar from '../components/common/ResponsavelAvatar';
 import { FOTOS_RESPONSAVEIS } from '../lib/constants';
+import { useChartAnimation } from '../hooks/useChartAnimation';
 
 interface CategoryVisual {
   icon: any;
@@ -57,12 +58,12 @@ export default function Categorias() {
   const navigate = useNavigate();
   const { currentDate } = useMonth();
   const { lancamentos, loading, erro } = useLancamentos();
-
   // 1. Controle "Saídas" (padrão) / "Entradas"
   const [tipoMovimento, setTipoMovimento] = useState<'Saída' | 'Entrada'>('Saída');
 
   // 2. Chips de responsável: "Todos" (padrão), "Ahyslla", "Marcos"
   const [responsavelFiltro, setResponsavelFiltro] = useState<'Todos' | string>('Todos');
+  const shouldAnimate = useChartAnimation(tipoMovimento + responsavelFiltro + currentDate.getTime());
 
   const normalizeStr = (s: string) =>
     s ? s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() : '';
@@ -191,7 +192,7 @@ export default function Categorias() {
 
       <div className="px-4 space-y-4">
         {/* 2. Controle "Saídas" (padrão) / "Entradas" em pill */}
-        <div className="w-full bg-[var(--bg-card)] border border-[var(--border)] p-1 rounded-full flex items-center shadow-sm">
+        <div className="w-full bg-[var(--bg-card)] border border-[var(--border)] p-1 rounded-full flex items-center shadow-sm fade-up" style={{ '--i': 1 } as React.CSSProperties}>
           <button
             type="button"
             onClick={() => setTipoMovimento('Saída')}
@@ -217,7 +218,7 @@ export default function Categorias() {
         </div>
 
         {/* 3. Chips de Responsável com Avatar */}
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 fade-up" style={{ '--i': 2 } as React.CSSProperties}>
           {responsaveisOptions.map((opt) => {
             const isSelected = responsavelFiltro === opt.value;
             const fotoUrl = opt.fullName ? FOTOS_RESPONSAVEIS[opt.fullName] : undefined;
@@ -259,7 +260,7 @@ export default function Categorias() {
         )}
 
         {/* 4. Gráfico de Rosca */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 shadow-[var(--shadow)]">
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 shadow-[var(--shadow)] fade-up" style={{ '--i': 3 } as React.CSSProperties}>
           {categoriesList.length === 0 ? (
             <div className="py-8 flex flex-col items-center justify-center text-center space-y-3">
               {/* Círculo cinza */}
@@ -290,7 +291,10 @@ export default function Categorias() {
                       outerRadius={88}
                       paddingAngle={3}
                       stroke="transparent"
-                      isAnimationActive={false}
+                      isAnimationActive={shouldAnimate}
+                      animationDuration={450}
+                      animationEasing="ease-out"
+                      animationBegin={0}
                     >
                       {chartData.map((entry, idx) => (
                         <Cell key={`cell-${idx}`} fill={entry.color} />
@@ -326,7 +330,7 @@ export default function Categorias() {
 
         {/* 5. Lista de Categorias (Do maior para o menor) */}
         {categoriesList.length > 0 && (
-          <div className="space-y-2.5">
+          <div className="space-y-2.5 fade-up" style={{ '--i': 4 } as React.CSSProperties}>
             <div className="flex justify-between items-center px-1">
               <h2 className="text-sm font-bold text-[var(--text-primary)]">
                 Detalhamento ({categoriesList.length})
@@ -409,9 +413,10 @@ export default function Categorias() {
                     {/* Barra de progresso fina */}
                     <div className="w-full bg-[var(--border)] h-1.5 rounded-full overflow-hidden">
                       <div
-                        className="h-full rounded-full transition-all duration-300"
+                        className="h-full rounded-full transition-transform duration-500 ease-out"
                         style={{
-                          width: `${Math.min(Math.max(cat.percentage, 1), 100)}%`,
+                          transform: `scaleX(${Math.min(1, cat.percentage / 100)})`,
+                          transformOrigin: 'left',
                           backgroundColor: cat.visual.colorHex
                         }}
                       />

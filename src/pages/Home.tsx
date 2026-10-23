@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Bell, Calendar, Eye, EyeOff, ChevronRight, ArrowUpCircle, ArrowDownCircle, ShoppingBag, Wifi, Coffee, Heart, BookOpen, Shirt, Tv, Zap, Droplet, Fuel, DollarSign, Briefcase, BellRing, BellOff, Dumbbell, AlertCircle } from 'lucide-react';
-import { formatCurrency } from '../lib/utils';
+import { formatCurrency, getDataExibicao } from '../lib/utils';
 import { useLancamentos } from '../hooks/useLancamentos';
 import { useNotification } from '../hooks/useNotification';
 import { format, subMonths, isSameMonth } from 'date-fns';
@@ -12,6 +12,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { CARTOES, isCartao, FOTOS_RESPONSAVEIS, matchCartao, getCartaoVisual } from '../lib/constants';
 import ResponsavelAvatar from '../components/common/ResponsavelAvatar';
 import { SyncStatusIndicator } from '../components/common/SyncStatusIndicator';
+import { useChartAnimation } from '../hooks/useChartAnimation';
 
 const getCategoryInfo = (categoria: string) => {
   const map: Record<string, { icon: any, color: string }> = {
@@ -39,6 +40,7 @@ export default function Home() {
   const { currentDate, setCurrentDate } = useMonth();
   const [showValues, setShowValues] = useState(true);
   const navigate = useNavigate();
+  const shouldAnimate = useChartAnimation(currentDate);
 
   const filteredData = useMemo(() => {
     return lancamentos.filter(t => isSameMonth(t.data_hora, currentDate));
@@ -85,7 +87,7 @@ export default function Home() {
 
   const latest = useMemo(() => {
     return [...filteredData]
-      .sort((a, b) => new Date(b.data_hora).getTime() - new Date(a.data_hora).getTime())
+      .sort((a, b) => getDataExibicao(b).getTime() - getDataExibicao(a).getTime())
       .slice(0, 6);
   }, [filteredData]);
 
@@ -266,7 +268,7 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="px-4 -mt-10 grid grid-cols-2 gap-4">
+      <div className="px-4 -mt-10 grid grid-cols-2 gap-4 fade-up" style={{ '--i': 1 } as React.CSSProperties}>
         <div className="bg-[var(--bg-card)] p-4 rounded-2xl shadow-[var(--shadow)] border border-[var(--border)]">
           <div className="text-sm text-[var(--text-secondary)] mb-1">Entrada</div>
           <div className="text-xl font-bold text-[var(--primary)]">+{showValues ? formatCurrency(totais.totalEntrada) : '••••'}</div>
@@ -279,7 +281,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="p-4">
+      <div className="p-4 fade-up" style={{ '--i': Math.min(2, 8) } as React.CSSProperties}>
         <h2 className="font-bold text-lg mb-4">Gastos por categoria</h2>
         {totais.totalSaida === 0 ? (
           <p className="text-center text-[var(--text-secondary)] py-8">Sem saídas neste mês</p>
@@ -287,7 +289,7 @@ export default function Home() {
           <div className="bg-[var(--bg-card)] p-4 rounded-2xl shadow-[var(--shadow)] border border-[var(--border)]">
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie data={chartData.items} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" isAnimationActive={false}>
+                <Pie data={chartData.items} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" isAnimationActive={shouldAnimate} animationDuration={450} animationEasing="ease-out" animationBegin={0}>
                   {chartData.items.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <Tooltip formatter={(value: any) => formatCurrency(Number(value) || 0) as any} />
@@ -311,7 +313,7 @@ export default function Home() {
       </div>
 
       {/* Seção Gasto por cartão de crédito */}
-      <div className="p-4">
+      <div className="p-4 fade-up" style={{ '--i': Math.min(3, 8) } as React.CSSProperties}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-bold text-lg">Gasto por cartão de crédito</h2>
           <span className="font-bold text-[var(--danger)]">{showValues ? formatCurrency(totalCartoes) : '••••'}</span>
@@ -354,7 +356,7 @@ export default function Home() {
                 <div className="flex justify-between items-center text-white relative z-10">
                   <span className="text-[11px] opacity-85">Em aberto: {showValues ? formatCurrency(c.value) : '••••'}</span>
                   <div className="w-16 h-1 bg-white/25 rounded-full overflow-hidden">
-                    <div className="bg-white/90 h-full rounded-full" style={{ width: `${(c.value / maxCardSpend) * 100}%` }} />
+                    <div className="bg-white/90 h-full rounded-full transition-transform duration-500 ease-out" style={{ transform: `scaleX(${Math.min(1, c.value / maxCardSpend)})`, transformOrigin: 'left' }} />
                   </div>
                 </div>
               </div>
@@ -365,7 +367,7 @@ export default function Home() {
       </div>
 
       {/* Seção Por responsável */}
-      <div className="p-4">
+      <div className="p-4 fade-up" style={{ '--i': Math.min(4, 8) } as React.CSSProperties}>
         <h2 className="font-bold text-lg mb-4">Por responsável</h2>
         <div className="space-y-3">
           {responsavelStats.map(r => {
@@ -401,10 +403,10 @@ export default function Home() {
 
                 <div className="space-y-1 pt-1">
                   <div className="w-full bg-[var(--border)] h-1.5 rounded-full overflow-hidden">
-                    <div className="bg-[var(--primary)] h-full rounded-full" style={{ width: `${(r.recebeu / maxRespVal) * 100}%` }} />
+                    <div className="bg-[var(--primary)] h-full rounded-full transition-transform duration-500 ease-out" style={{ transform: `scaleX(${Math.min(1, r.recebeu / maxRespVal)})`, transformOrigin: 'left' }} />
                   </div>
                   <div className="w-full bg-[var(--border)] h-1.5 rounded-full overflow-hidden">
-                    <div className="bg-[var(--danger)] h-full rounded-full" style={{ width: `${(r.gastou / maxRespVal) * 100}%` }} />
+                    <div className="bg-[var(--danger)] h-full rounded-full transition-transform duration-500 ease-out" style={{ transform: `scaleX(${Math.min(1, r.gastou / maxRespVal)})`, transformOrigin: 'left' }} />
                   </div>
                 </div>
               </div>
@@ -413,7 +415,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="p-4">
+      <div className="p-4 fade-up" style={{ '--i': Math.min(5, 8) } as React.CSSProperties}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-bold text-lg">Últimos lançamentos</h2>
           <button onClick={() => navigate('/lancamentos')} className="text-sm text-[var(--primary)] flex items-center">Ver todos <ChevronRight size={16}/></button>
@@ -428,7 +430,7 @@ export default function Home() {
                   <div className={`${color} p-2 rounded-full text-white`}><Icon size={16}/></div>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{t.descricao || t.categoria}</div>
-                    <div className="text-xs text-[var(--text-secondary)]">{t.banco} · {format(t.data_hora, 'dd/MM')}</div>
+                    <div className="text-xs text-[var(--text-secondary)]">{t.banco} · {format(getDataExibicao(t), 'dd/MM')}</div>
                   </div>
                   <div className={`font-bold ${t.movimento === 'Entrada' ? 'text-[var(--primary)]' : 'text-[var(--danger)]'}`}>
                     {t.movimento === 'Entrada' ? '+' : '-'}{showValues ? formatCurrency(t.valor) : '••••'}

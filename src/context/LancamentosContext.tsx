@@ -44,6 +44,8 @@ interface HeaderMap {
   confirmado: string | null;
   idCompra: string | null;
   parcelaAtual: string | null;
+  totalParcelas: string | null;
+  dataCompra: string | null;
 }
 
 const buildHeaderMap = (fields: string[] = []): HeaderMap => {
@@ -63,6 +65,8 @@ const buildHeaderMap = (fields: string[] = []): HeaderMap => {
     confirmado: findField(['Confirmado']),
     idCompra: findField(['id_compra', 'ID Compra', 'id']),
     parcelaAtual: findField(['parcela_atual', 'Parcela atual', 'parcela']),
+    totalParcelas: findField(['total_parcelas', 'Total parcelas']),
+    dataCompra: findField(['data_compra', 'Data da compra', 'Data compra']),
   };
 };
 
@@ -111,6 +115,7 @@ const processRows = (rows: any[], headerMap: HeaderMap): Transaction[] => {
     const tx: Transaction = {
       id,
       data_hora: parseDateFast(String(rawData)),
+      data_compra: headerMap.dataCompra && row[headerMap.dataCompra] ? parseDateFast(String(row[headerMap.dataCompra])) : undefined,
       movimento,
       banco: headerMap.banco ? String(row[headerMap.banco] || '') : '',
       categoria: headerMap.categoria ? String(row[headerMap.categoria] || '') : '',
@@ -118,6 +123,9 @@ const processRows = (rows: any[], headerMap: HeaderMap): Transaction[] => {
       descricao: headerMap.descricao ? String(row[headerMap.descricao] || '') : '',
       valor,
       confirmado,
+      id_compra: idCompra || undefined,
+      parcela_atual: parcelaAtual ? Number(parcelaAtual) || 1 : undefined,
+      total_parcelas: headerMap.totalParcelas && row[headerMap.totalParcelas] ? Number(row[headerMap.totalParcelas]) || undefined : undefined,
     };
 
     mapById.set(id, tx);
@@ -136,6 +144,7 @@ const getPendingLocalLancamentos = (): Transaction[] => {
     return parsed.map((t: any) => ({
       ...t,
       data_hora: new Date(t.data_hora),
+      data_compra: t.data_compra ? new Date(t.data_compra) : undefined,
     }));
   } catch {
     return [];
@@ -203,7 +212,8 @@ export const LancamentosProvider: React.FC<{ children: React.ReactNode }> = ({ c
         if (Array.isArray(parsed)) {
           return parsed.map((t: any) => ({
             ...t,
-            data_hora: new Date(t.data_hora)
+            data_hora: new Date(t.data_hora),
+            data_compra: t.data_compra ? new Date(t.data_compra) : undefined,
           }));
         }
       } catch {

@@ -85,13 +85,19 @@ function AppLayout() {
         >
           <PullToRefresh containerRef={mainRef}>
             <Suspense fallback={<PageFallback />}>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/lancamentos" element={<Lancamentos />} />
-                <Route path="/categorias" element={<Categorias />} />
-                <Route path="/analises" element={<Analises />} />
-                <Route path="/novo" element={<NovoLancamento />} />
-              </Routes>
+              <div
+                key={path}
+                className="page-enter"
+                onAnimationEnd={(e) => e.currentTarget.classList.remove('page-enter')}
+              >
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/lancamentos" element={<Lancamentos />} />
+                  <Route path="/categorias" element={<Categorias />} />
+                  <Route path="/analises" element={<Analises />} />
+                  <Route path="/novo" element={<NovoLancamento />} />
+                </Routes>
+              </div>
             </Suspense>
           </PullToRefresh>
         </main>

@@ -154,6 +154,7 @@ export default function FormLancamento({ onOpenIntegracoes }: { onOpenIntegracoe
 
       const payload = {
         data_hora: format(parcela.data, 'dd/MM/yyyy HH:mm:ss'),
+        data_compra: format(new Date(dataHora), 'dd/MM/yyyy HH:mm:ss'),
         movimento: tipo,
         banco,
         categoria,
@@ -171,6 +172,7 @@ export default function FormLancamento({ onOpenIntegracoes }: { onOpenIntegracoe
         novosLancamentos.push({
           id: `${idCompra}-${parcela.numero}`,
           data_hora: parcela.data,
+          data_compra: new Date(dataHora),
           movimento: tipo,
           banco,
           categoria,
@@ -178,6 +180,9 @@ export default function FormLancamento({ onOpenIntegracoes }: { onOpenIntegracoe
           descricao: descricaoFinal,
           valor: Number(parcela.valor),
           confirmado: Boolean(confirmado),
+          id_compra: idCompra,
+          parcela_atual: parcela.numero,
+          total_parcelas: n,
         });
       } catch (err) {
         console.error(err);
@@ -252,7 +257,7 @@ export default function FormLancamento({ onOpenIntegracoes }: { onOpenIntegracoe
 
       <div className="grid grid-cols-2 gap-3">
         <div className="min-w-0">
-          <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Data e Hora</label>
+          <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Data da compra</label>
           <input 
             type="datetime-local" 
             value={dataHora} 
