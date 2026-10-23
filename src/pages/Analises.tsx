@@ -21,7 +21,9 @@ import {
   CartesianGrid, 
   Line, 
   Area, 
-  ComposedChart 
+  ComposedChart,
+  Legend,
+  Cell
 } from 'recharts';
 import { 
   TrendingUp, 
@@ -492,40 +494,57 @@ export default function Analises() {
   }, [lancamentos, now, chartMonthlyData]);
 
   // ==========================================
-  // 7. PARCELAS FUTURAS (Próximos 6 meses)
+  // 7. PARCELAS FUTURAS E GRÁFICO (Próximos 12 meses)
   // ==========================================
-  const parcelasFuturas = useMemo(() => {
-    const futureMonths: { month: Date; label: string; total: number; count: number }[] = [];
-    let grandTotal = 0;
-
-    for (let i = 1; i <= 6; i++) {
-      const mDate = startOfMonth(subMonths(now, -i));
+  const { parcelasFuturasData, listaParcelasFuturas } = useMemo(() => {
+    const months = Array.from({ length: 12 }, (_, i) => startOfMonth(subMonths(now, -i)));
+    
+    const data = months.map(mDate => {
       const mEnd = endOfMonth(mDate);
+      const itemsInMonth = lancamentos.filter(t => 
+        t.movimento === 'Saída' && 
+        isCartao(t.banco) && 
+        isWithinInterval(t.data_hora, { start: mDate, end: mEnd })
+      );
 
-      const itemsInMonth = lancamentos.filter(t => {
-        const d = getDataExibicao(t);
-        return t.movimento === 'Saída' && isWithinInterval(d, { start: mDate, end: mEnd });
+      const row: Record<string, any> = {
+        label: format(mDate, 'MMM/yy', { locale: ptBR }).replace(/^\w/, c => c.toUpperCase()),
+        fullLabel: format(mDate, "MMMM 'de' yyyy", { locale: ptBR }),
+        isCurrentMonth: mDate.getMonth() === now.getMonth() && mDate.getFullYear() === now.getFullYear(),
+        total: 0
+      };
+
+      cartoesList.forEach((cartao, idx) => {
+        const totalMes = itemsInMonth
+          .filter(t => matchCartao(t.banco || '', cartoesList) === cartao)
+          .reduce((acc, t) => acc + (t.valor || 0), 0);
+        row[`c${idx}`] = totalMes;
+        row.total += totalMes;
       });
 
-      const total = itemsInMonth.reduce((acc, t) => acc + (t.valor || 0), 0);
-      grandTotal += total;
+      return row;
+    });
 
-      const labelRaw = format(mDate, 'MMM/yy', { locale: ptBR });
-      futureMonths.push({
+    const lista = months.map(mDate => {
+      const mEnd = endOfMonth(mDate);
+      const itemsInMonth = lancamentos.filter(t => 
+        t.movimento === 'Saída' && 
+        isCartao(t.banco) && 
+        isWithinInterval(t.data_hora, { start: mDate, end: mEnd })
+      );
+      return {
         month: mDate,
-        label: labelRaw.charAt(0).toUpperCase() + labelRaw.slice(1),
-        total,
+        label: format(mDate, 'MMM/yy', { locale: ptBR }).charAt(0).toUpperCase() + format(mDate, 'MMM/yy', { locale: ptBR }).slice(1),
+        total: itemsInMonth.reduce((acc, t) => acc + (t.valor || 0), 0),
         count: itemsInMonth.length
-      });
-    }
+      };
+    });
 
-    if (grandTotal === 0) return null; // Regra: se não registrar / comprometer, oculte
+    return { parcelasFuturasData: data, listaParcelasFuturas: lista };
+  }, [lancamentos, now, cartoesList]);
 
-    return {
-      futureMonths,
-      grandTotal
-    };
-  }, [lancamentos, now]);
+  const totalComprometido = useMemo(() => parcelasFuturasData.reduce((acc, row) => acc + row.total, 0), [parcelasFuturasData]);
+  const maiorFatura = useMemo(() => [...parcelasFuturasData].sort((a, b) => b.total - a.total)[0], [parcelasFuturasData]);
 
   // ==========================================
   // 8. INSIGHTS EM TEXTO (Até 3 frases relevantes)
@@ -1259,34 +1278,69 @@ export default function Analises() {
               </div>
             )}
 
-            {/* 7. PARCELAS FUTURAS (Próximos 6 meses) */}
-            {parcelasFuturas && (
-              <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 shadow-[var(--shadow)] space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Layers size={18} className="text-indigo-400" />
-                    <h3 className="font-bold text-sm text-[var(--text-primary)]">Parcelas Comprometidas</h3>
-                  </div>
-                  <span className="text-xs font-bold text-indigo-400">
-                    Total: {formatCurrency(parcelasFuturas.grandTotal)}
-                  </span>
-                </div>
-
-                <div className="space-y-2">
-                  {parcelasFuturas.futureMonths.map((m) => (
-                    <div key={m.label} className="flex items-center justify-between text-xs p-2.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded-xl">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-[var(--text-primary)]">{m.label}</span>
-                        <span className="text-[10px] text-[var(--text-secondary)]">({m.count} {m.count === 1 ? 'parcela' : 'parcelas'})</span>
-                      </div>
-                      <span className="font-black text-[var(--danger)]">
-                        -{formatCurrency(m.total)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+            {/* 7. PARCELAS POR PERÍODO */}
+            <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 shadow-[var(--shadow)] space-y-4 fade-up" style={{ '--i': Math.min(6, 8) } as React.CSSProperties}>
+              <div>
+                <h3 className="font-bold text-sm text-[var(--text-primary)]">Parcelas por período</h3>
+                <p className="text-[11px] text-[var(--text-secondary)]">Soma das faturas de todos os cartões</p>
               </div>
-            )}
+
+              {totalComprometido === 0 ? (
+                <p className="text-center text-xs text-[var(--text-secondary)] py-8">Nenhuma parcela comprometida nos próximos meses</p>
+              ) : (
+                <>
+                  <div className="w-full h-56">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={parcelasFuturasData} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.6} />
+                        <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 10 }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 10 }} tickFormatter={val => val >= 1000 ? `${(val / 1000).toFixed(1)}k` : `${val}`} />
+                        <RechartsTooltip 
+                          formatter={(val: any) => [formatCurrency(Number(val) || 0), 'Valor']}
+                          labelFormatter={(_, payload) => payload?.[0]?.payload?.fullLabel || ''}
+                          contentStyle={{ backgroundColor: 'var(--bg-elevated)', borderColor: 'var(--border)', borderRadius: '12px', fontSize: '12px' }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: '10px' }} />
+                        {cartoesList.map((cartao, idx) => {
+                          const visual = getCartaoVisual(cartao);
+                          return (
+                            <Bar key={cartao} dataKey={`c${idx}`} name={visual.shortName} stackId="cartoes" fill={visual.color} isAnimationActive={shouldAnimate} animationDuration={450} animationBegin={0}>
+                              {parcelasFuturasData.map((entry, i) => (
+                                <Cell key={`cell-${i}`} fillOpacity={entry.isCurrentMonth ? 1 : 0.8} stroke={entry.isCurrentMonth ? '#fff' : 'none'} />
+                              ))}
+                            </Bar>
+                          );
+                        })}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="pt-3 border-t border-[var(--border)] text-xs text-[var(--text-secondary)] space-y-1">
+                    <div className="flex justify-between">
+                      <span>Total comprometido:</span>
+                      <span className="font-bold text-[var(--text-primary)]">{formatCurrency(totalComprometido)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Maior fatura:</span>
+                      <span className="font-bold text-[var(--danger)]">{maiorFatura?.label} · {formatCurrency(maiorFatura?.total || 0)}</span>
+                    </div>
+                  </div>
+
+                  {/* Lista de meses */}
+                  <div className="space-y-1.5 pt-2">
+                    {listaParcelasFuturas.map((item, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-xs">
+                        <span className="text-[var(--text-secondary)]">{item.label}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[var(--text-secondary)]">{item.count} {item.count === 1 ? 'lançamento' : 'lançamentos'}</span>
+                          <span className="font-bold">{formatCurrency(item.total)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* 5. MAIORES GASTOS DO PERÍODO */}
             {maioresGastos.length > 0 && (
