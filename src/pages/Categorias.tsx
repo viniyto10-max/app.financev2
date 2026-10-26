@@ -5,7 +5,7 @@ import {
   PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip 
 } from 'recharts';
 import { 
-  Plus, Coffee, ShoppingBag, Wifi, Zap, Heart, BookOpen, Shirt, Tv, Fuel, Droplet, DollarSign, Briefcase, Tag, TrendingUp, TrendingDown, Dumbbell 
+  Plus, Coffee, ShoppingBag, Wifi, Zap, Heart, BookOpen, Shirt, Tv, Fuel, Droplet, DollarSign, Briefcase, Tag, TrendingUp, TrendingDown, Dumbbell, Bike, Sofa, Receipt, Stethoscope
 } from 'lucide-react';
 import { useMonth, MonthChips } from '../components/common/MonthContext';
 import { useLancamentos } from '../hooks/useLancamentos';
@@ -36,6 +36,10 @@ const CATEGORY_MAP: Record<string, CategoryVisual> = {
   'Àgua': { icon: Droplet, colorHex: '#38BDF8', bgClass: 'bg-sky-400/15', textClass: 'text-sky-400' },
   'Água': { icon: Droplet, colorHex: '#38BDF8', bgClass: 'bg-sky-400/15', textClass: 'text-sky-400' },
   'Salário': { icon: DollarSign, colorHex: '#10B981', bgClass: 'bg-emerald-500/15', textClass: 'text-emerald-500' },
+  'Delivery': { icon: Bike, colorHex: '#F43F5E', bgClass: 'bg-rose-500/15', textClass: 'text-rose-500' },
+  'Móveis e Eletrodomésticos': { icon: Sofa, colorHex: '#14B8A6', bgClass: 'bg-teal-500/15', textClass: 'text-teal-500' },
+  'Contas da Casa': { icon: Receipt, colorHex: '#F59E0B', bgClass: 'bg-amber-500/15', textClass: 'text-amber-500' },
+  'Consultas médicas': { icon: Stethoscope, colorHex: '#3B82F6', bgClass: 'bg-blue-500/15', textClass: 'text-blue-500' },
 };
 
 const DEFAULT_CATEGORY_VISUAL: CategoryVisual = {

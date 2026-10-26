@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Bell, Calendar, Eye, EyeOff, ChevronRight, ArrowUpCircle, ArrowDownCircle, ShoppingBag, Wifi, Coffee, Heart, BookOpen, Shirt, Tv, Zap, Droplet, Fuel, DollarSign, Briefcase, BellRing, BellOff, Dumbbell, AlertCircle } from 'lucide-react';
+import { Bell, Calendar, Eye, EyeOff, ChevronRight, ArrowUpCircle, ArrowDownCircle, ShoppingBag, Wifi, Coffee, Heart, BookOpen, Shirt, Tv, Zap, Droplet, Fuel, DollarSign, Briefcase, BellRing, BellOff, Dumbbell, AlertCircle, Bike, Sofa, Receipt, Stethoscope } from 'lucide-react';
 import { formatCurrency, getDataExibicao } from '../lib/utils';
 import { useLancamentos } from '../hooks/useLancamentos';
 import { useNotification } from '../hooks/useNotification';
@@ -28,6 +28,10 @@ const getCategoryInfo = (categoria: string) => {
     'Combustivel': { icon: Fuel, color: 'bg-gray-600' },
     'Àgua': { icon: Droplet, color: 'bg-blue-400' },
     'Salário': { icon: DollarSign, color: 'bg-green-600' },
+    'Delivery': { icon: Bike, color: 'bg-rose-500' },
+    'Móveis e Eletrodomésticos': { icon: Sofa, color: 'bg-teal-500' },
+    'Contas da Casa': { icon: Receipt, color: 'bg-amber-500' },
+    'Consultas médicas': { icon: Stethoscope, color: 'bg-blue-500' },
   };
   return map[categoria] || { icon: Briefcase, color: 'bg-gray-400' };
 };

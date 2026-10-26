@@ -6,7 +6,7 @@ import { formatCurrency, getDataExibicao } from '../lib/utils';
 import { isCartao } from '../lib/constants';
 import { 
   Search, X, Filter, ChevronRight, Calendar, ArrowUpCircle, ArrowDownCircle, 
-  ShoppingBag, Wifi, Coffee, Heart, BookOpen, Shirt, Tv, Zap, Droplet, Fuel, DollarSign, Briefcase, RefreshCw, ReceiptText, Dumbbell 
+  ShoppingBag, Wifi, Coffee, Heart, BookOpen, Shirt, Tv, Zap, Droplet, Fuel, DollarSign, Briefcase, RefreshCw, ReceiptText, Dumbbell, Bike, Sofa, Receipt, Stethoscope 
 } from 'lucide-react';
 import { ScreenHeader } from '../components/common/ScreenHeader';
 import { format, isToday, isYesterday, parseISO, isValid, addMonths, startOfMonth } from 'date-fns';
@@ -59,6 +59,10 @@ const getCategoryInfo = (categoria: string) => {
     'Combustivel': { icon: Fuel, color: 'text-gray-500' },
     'Àgua': { icon: Droplet, color: 'text-blue-400' },
     'Salário': { icon: DollarSign, color: 'text-green-600' },
+    'Delivery': { icon: Bike, color: 'text-rose-500' },
+    'Móveis e Eletrodomésticos': { icon: Sofa, color: 'text-teal-500' },
+    'Contas da Casa': { icon: Receipt, color: 'text-amber-500' },
+    'Consultas médicas': { icon: Stethoscope, color: 'text-blue-500' },
   };
   return map[categoria] || { icon: Briefcase, color: 'text-[var(--text-secondary)]' };
 };
